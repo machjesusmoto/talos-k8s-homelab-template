@@ -1,89 +1,92 @@
-# Migration Progress Tracker
+# Talos Kubernetes Deployment Tracker
 
-## Phase 0: Infrastructure Prerequisites
-- [ ] Generate SSH keys on MOTOSTATION
-- [ ] Create Ansible vault: `cd ansible && ansible-vault create vault.yml`
-- [ ] Add passwords to vault:
-  ```yaml
-  vault_ssh_password: "your-current-password"
-  vault_sudo_password: "your-current-sudo-password"
-  ```
-- [ ] Run `ansible-playbook -i inventory/hosts-initial.yml playbooks/setup-ssh-keys.yml --ask-vault-pass`
-- [ ] Verify with `./scripts/verify-access.sh`
+## Phase 1: Preparation ⏳
+- [ ] Download talosctl for Windows
+- [ ] Download Talos Linux ISO
+- [ ] Upload ISO to Proxmox storage
+- [ ] Review network requirements (VLANs, IPs)
+- [ ] Ensure DNS is configured for cluster
 
-## Phase 1: Dev Cluster Setup
-- [ ] Run `ansible-playbook -i inventory/hosts.yml playbooks/prepare-nodes.yml`
-- [ ] Run `ansible-playbook -i inventory/hosts.yml playbooks/install-k3s-dev.yml`
-- [ ] Setup kubectl with `./scripts/setup-kubectl.sh dev`
-- [ ] Deploy NFS provisioner: `kubectl apply -f storage/nfs-provisioner.yml`
-- [ ] Add Traefik helm repo: `helm repo add traefik https://helm.traefik.io/traefik`
-- [ ] Install Traefik: `helm install traefik traefik/traefik -n traefik --create-namespace -f traefik/values-dev.yml`
-- [ ] Deploy test app: `kubectl apply -f apps/media/overseerr/overseerr-dev.yml`
-- [ ] Verify app is running: `kubectl get all -n media`
+## Phase 2: VM Creation 🖥️
+- [ ] Create talos-cp-01 VM (192.168.1.241)
+  - [ ] 4 CPU, 8GB RAM, 100GB disk
+  - [ ] Network: VLAN 1200
+  - [ ] Boot from Talos ISO
+- [ ] Create talos-cp-02 VM (192.168.1.242)
+  - [ ] Same specifications
+- [ ] Create talos-cp-03 VM (192.168.1.243)
+  - [ ] Same specifications
+- [ ] Start all VMs (they'll wait for configuration)
 
-## Phase 2: Learn & Experiment
-- [ ] Create Helm charts for media stack
-- [ ] Deploy Gluetun VPN configuration
-- [ ] Test data migration procedures
-- [ ] Set up Prometheus/Grafana monitoring
+## Phase 3: Generate Configurations 🔧
+- [ ] Run `./scripts/generate-configs.sh`
+- [ ] Back up `secrets.yaml` securely!
+- [ ] Review generated configurations
+- [ ] Verify network settings in patches
 
-## Phase 3: Production Cluster
-- [ ] Install K3s on production nodes
-- [ ] Configure HA with embedded etcd
-- [ ] Deploy MetalLB for load balancing
-- [ ] Configure production storage and networking
+## Phase 4: Deploy Cluster 🚀
+- [ ] Run `./scripts/apply-configs.sh`
+- [ ] Wait for nodes to accept configuration
+- [ ] Run `./scripts/bootstrap-cluster.sh`
+- [ ] Verify cluster health
 
-## Phase 4: Application Migration
-- [ ] Migrate CheckMK
-- [ ] Migrate download stack (gluetun, qbittorrent, nzbget)
-- [ ] Migrate *arr applications
-- [ ] Update DNS records
-- [ ] Decommission Docker Swarm
+## Phase 5: Core Infrastructure 🏗️
+- [ ] Deploy NFS CSI driver
+- [ ] Deploy MetalLB for LoadBalancer services
+- [ ] Deploy Ingress Controller (Traefik/Nginx)
+- [ ] Deploy cert-manager for TLS
 
-## Phase 5: GitOps & Automation
-- [ ] Deploy ArgoCD
-- [ ] Create Git repository structure
-- [ ] Configure Renovate bot
-- [ ] Set up CI/CD pipelines
+## Phase 6: GitOps Setup 🔄
+- [ ] Choose GitOps tool (Flux or ArgoCD)
+- [ ] Deploy GitOps controller
+- [ ] Configure repository sync
+- [ ] Test automated deployment
+
+## Phase 7: Application Deployment 📦
+- [ ] Deploy monitoring stack (Prometheus/Grafana)
+- [ ] Deploy media applications
+  - [ ] Sonarr
+  - [ ] Radarr
+  - [ ] Prowlarr
+  - [ ] Overseerr
+  - [ ] qBittorrent
+  - [ ] NZBGet
+- [ ] Configure application networking
+
+## Phase 8: Production Readiness ✅
+- [ ] Configure backups
+- [ ] Set up monitoring alerts
+- [ ] Document runbooks
+- [ ] Test disaster recovery
 
 ## Commands Quick Reference
 
-### Ansible Commands
 ```bash
-# Setup SSH keys (if needed)
-ansible-playbook -i inventory/hosts-initial.yml playbooks/setup-ssh-keys.yml --ask-vault-pass
+# Generate configs
+./scripts/generate-configs.sh
 
-# Prepare nodes
-ansible-playbook -i inventory/hosts.yml playbooks/prepare-nodes.yml
+# Apply to nodes
+./scripts/apply-configs.sh
 
-# Install K3s
-ansible-playbook -i inventory/hosts.yml playbooks/install-k3s-dev.yml
-```
+# Bootstrap cluster
+./scripts/bootstrap-cluster.sh
 
-### Kubectl Commands
-```bash
-# Setup kubectl
-./scripts/setup-kubectl.sh dev
+# Check cluster health
+talosctl health
 
-# Get nodes
+# Get nodes status
 kubectl get nodes
 
-# Get all resources
-kubectl get all --all-namespaces
-
-# Watch pod creation
-kubectl get pods -w -n media
+# Watch pods
+kubectl get pods -A -w
 ```
 
-### Helm Commands
-```bash
-# Add repo
-helm repo add traefik https://helm.traefik.io/traefik
-helm repo update
+## Important Notes
 
-# Install
-helm install traefik traefik/traefik -n traefik --create-namespace -f traefik/values-dev.yml
+⚠️ **Security**: Keep `secrets.yaml` secure - it contains all cluster secrets!
 
-# List releases
-helm list --all-namespaces
-```
+📝 **DNS**: Ensure all nodes can resolve each other's hostnames
+
+🔧 **Troubleshooting**: Use `talosctl logs -n <node-ip>` to debug issues
+
+🚀 **Next Steps**: After cluster is running, focus on GitOps for all deployments

@@ -1,0 +1,50 @@
+# Common configuration for all nodes
+machine:
+  # Install to disk automatically
+  install:
+    disk: /dev/sda
+    wipe: true
+    
+  # Network configuration
+  network:
+    nameservers:
+      - 192.168.1.1  # Your DNS server
+    
+  # Time configuration
+  time:
+    disabled: false
+    servers:
+      - time.cloudflare.com
+      - time.google.com
+      
+  # Kubelet configuration
+  kubelet:
+    image: ghcr.io/siderolabs/kubelet:${KUBERNETES_VERSION}
+    extraArgs:
+      feature-gates: GracefulNodeShutdown=true
+      rotate-certificates: "true"
+    nodeIP:
+      validSubnets:
+        - 192.168.1.0/24
+        
+  # Container runtime
+  kernel:
+    modules:
+      - name: br_netfilter
+        parameters:
+          - nf_conntrack_max=131072
+
+# Cluster configuration
+cluster:
+  # Use Flannel for CNI (works well with Talos)
+  network:
+    cni:
+      name: flannel
+      
+  # Proxy configuration (if needed)
+  proxy:
+    disabled: true
+    
+  # Core DNS configuration
+  coreDNS:
+    disabled: false

@@ -1,0 +1,15 @@
+# Worker node specific configuration
+machine:
+  type: worker
+  
+  # Worker features
+  features:
+    rbac: true
+    
+cluster:
+  # Discovery configuration for workers to join
+  discovery:
+    enabled: true
+    registries:
+      kubernetes:
+        disabled: false

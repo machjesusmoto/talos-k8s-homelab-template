@@ -1,0 +1,26 @@
+# Talos Image Factory Schematic for Proxmox VMs
+# This creates a custom Talos image with QEMU guest agent for better Proxmox integration
+
+customization:
+  systemExtensions:
+    officialExtensions:
+      # QEMU Guest Agent - Essential for Proxmox
+      - siderolabs/qemu-guest-agent
+      
+      # CPU Microcode - Choose based on your hardware
+      - siderolabs/intel-ucode
+      # - siderolabs/amd-ucode  # Uncomment if using AMD
+      
+      # Optional: Additional tools
+      # - siderolabs/iscsi-tools  # If using iSCSI storage
+      # - siderolabs/util-linux-tools  # For additional utilities
+  
+  # Optional: Extra kernel arguments for VMs
+  extraKernelArgs:
+    - console=tty0
+    - console=ttyS0,115200n8  # Serial console for Proxmox
+    
+  # Optional: Initial META values
+  # meta:
+  #   - key: 0xa
+  #     value: "{}"

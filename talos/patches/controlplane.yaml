@@ -1,0 +1,51 @@
+# Control plane specific configuration
+machine:
+  type: controlplane
+  
+  # Control plane features
+  features:
+    rbac: true
+    
+  # Network settings for control plane
+  network:
+    interfaces:
+      - interface: eth0
+        dhcp: false
+        vip:
+          ip: 192.168.1.240  # Shared VIP for HA
+          
+cluster:
+  # Allow scheduling on control plane nodes
+  allowSchedulingOnControlPlanes: true
+  
+  # Control plane endpoint (VIP)
+  controlPlane:
+    endpoint: https://192.168.1.240:6443
+    
+  # etcd configuration for HA
+  etcd:
+    # Automatic backups
+    extraArgs:
+      snapshot-count: "5000"
+      heartbeat-interval: "100"
+      election-timeout: "1000"
+      
+  # API server configuration
+  apiServer:
+    extraArgs:
+      anonymous-auth: "false"
+      profiling: "false"
+      
+    # Admission controllers
+    admissionControl:
+      - name: PodSecurity
+        configuration:
+          apiVersion: pod-security.admission.config.k8s.io/v1alpha1
+          kind: PodSecurityConfiguration
+          defaults:
+            enforce: "baseline"
+            enforce-version: "latest"
+            warn: "restricted"
+            warn-version: "latest"
+            audit: "restricted"
+            audit-version: "latest"
