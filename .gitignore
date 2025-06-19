@@ -1,0 +1,47 @@
+# Ansible
+ansible/vault.yml
+ansible/*.retry
+ansible/inventory/group_vars/*/vault.yml
+ansible/inventory/host_vars/*/vault.yml
+
+# Kubernetes
+kubeconfig
+*.kubeconfig
+.kube/
+
+# Helm
+*.tgz
+charts/*/charts/
+charts/*/Chart.lock
+
+# Terraform
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.bak
+*.backup
+
+# Secrets
+secrets/
+*.key
+*.pem
+*.crt
+*.p12

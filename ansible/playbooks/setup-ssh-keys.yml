@@ -1,0 +1,38 @@
+---
+- name: Setup SSH keys and passwordless sudo
+  hosts: dev_hosts,test_hosts
+  vars_files:
+    - ../vault.yml
+  tasks:
+    - name: Create .ssh directory
+      file:
+        path: /home/{{ ansible_user }}/.ssh
+        state: directory
+        mode: '0700'
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+
+    - name: Copy SSH public key
+      authorized_key:
+        user: "{{ ansible_user }}"
+        state: present
+        key: "{{ lookup('file', '~/.ssh/id_rsa.pub') }}"
+
+    - name: Configure sudoers for passwordless sudo
+      become: yes
+      lineinfile:
+        path: /etc/sudoers.d/{{ ansible_user }}
+        line: "{{ ansible_user }} ALL=(ALL) NOPASSWD:ALL"
+        create: yes
+        mode: '0440'
+        validate: 'visudo -cf %s'
+
+    - name: Test passwordless sudo
+      become: yes
+      command: whoami
+      register: sudo_test
+      changed_when: false
+
+    - name: Display sudo test result
+      debug:
+        msg: "Sudo works - running as: {{ sudo_test.stdout }}"

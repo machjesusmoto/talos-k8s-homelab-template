@@ -1,0 +1,60 @@
+---
+- name: Prepare nodes for K3s
+  hosts: all
+  become: yes
+  tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+        
+    - name: Install required packages
+      apt:
+        name:
+          - curl
+          - nfs-common
+          - open-iscsi
+          - util-linux
+          - ca-certificates
+          - apt-transport-https
+          - software-properties-common
+        state: present
+        
+    - name: Enable and start iscsid
+      systemd:
+        name: iscsid
+        enabled: yes
+        state: started
+        
+    - name: Configure kernel modules
+      modprobe:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - br_netfilter
+        - overlay
+        
+    - name: Persist kernel modules
+      copy:
+        content: |
+          br_netfilter
+          overlay
+        dest: /etc/modules-load.d/k3s.conf
+        
+    - name: Configure sysctl
+      sysctl:
+        name: "{{ item.key }}"
+        value: "{{ item.value }}"
+        sysctl_set: yes
+        state: present
+        reload: yes
+      loop:
+        - { key: 'net.bridge.bridge-nf-call-iptables', value: '1' }
+        - { key: 'net.bridge.bridge-nf-call-ip6tables', value: '1' }
+        - { key: 'net.ipv4.ip_forward', value: '1' }
+        
+    - name: Create K3s config directory
+      file:
+        path: /etc/rancher/k3s
+        state: directory
+        mode: '0755'

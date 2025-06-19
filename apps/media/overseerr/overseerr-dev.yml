@@ -1,0 +1,93 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: media
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: overseerr-config
+  namespace: media
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: nfs-config
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: overseerr
+  namespace: media
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: overseerr
+  template:
+    metadata:
+      labels:
+        app: overseerr
+    spec:
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+      containers:
+      - name: overseerr
+        image: sctx/overseerr:latest
+        ports:
+        - containerPort: 5055
+        env:
+        - name: TZ
+          value: "America/Los_Angeles"
+        volumeMounts:
+        - name: config
+          mountPath: /app/config
+        - name: media
+          mountPath: /media
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+      volumes:
+      - name: config
+        persistentVolumeClaim:
+          claimName: overseerr-config
+      - name: media
+        nfs:
+          server: 192.168.1.12
+          path: /mnt/rz3_storage/primary_dataset/media/data/media
+          readOnly: true
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: overseerr
+  namespace: media
+spec:
+  selector:
+    app: overseerr
+  ports:
+  - port: 5055
+    targetPort: 5055
+---
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  name: overseerr
+  namespace: media
+spec:
+  entryPoints:
+    - web
+  routes:
+    - match: Host(`overseerr-dev.dttesting.com`)
+      kind: Rule
+      services:
+        - name: overseerr
+          port: 5055

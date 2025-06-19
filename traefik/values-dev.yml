@@ -1,0 +1,41 @@
+globalArguments:
+  - "--global.checknewversion=false"
+  - "--global.sendanonymoususage=false"
+
+additionalArguments:
+  - "--api.insecure=true"
+  - "--api.dashboard=true"
+  - "--log.level=INFO"
+  - "--accesslog=true"
+  - "--entrypoints.websecure.http.tls=true"
+
+service:
+  type: LoadBalancer
+  spec:
+    loadBalancerIP: 192.168.1.247  # Reserved IP for dev cluster
+
+persistence:
+  enabled: true
+  storageClass: nfs-config
+  size: 1Gi
+  path: /data
+
+ingressRoute:
+  dashboard:
+    enabled: true
+
+ports:
+  web:
+    port: 80
+    exposedPort: 80
+    nodePort: 30080
+  websecure:
+    port: 443
+    exposedPort: 443
+    nodePort: 30443
+  metrics:
+    port: 9100
+    exposedPort: 9100
+
+deployment:
+  replicas: 2
