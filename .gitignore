@@ -45,3 +45,7 @@ secrets/
 *.pem
 *.crt
 *.p12
+
+secrets.yaml
+controlplane.yaml
+worker.yaml
