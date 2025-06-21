@@ -1,51 +1,61 @@
 #!/bin/bash
 
-CLUSTER=$1
+# Setup kubectl for Talos cluster - Linux version
 
-if [[ -z "$CLUSTER" ]]; then
-  echo "Usage: $0 <cluster>"
-  echo "Clusters: dev, test, prod"
-  exit 1
-fi
+CONFIG_NAME=${1:-"talos-cluster"}
 
-case $CLUSTER in
-  dev)
-    MASTER_IP="192.168.1.244"
-    CONFIG_NAME="config-dev"
-    ;;
-  test)
-    MASTER_IP="192.168.1.251"
-    CONFIG_NAME="config-test"
-    ;;
-  prod)
-    MASTER_IP="192.168.1.241"
-    CONFIG_NAME="config-prod"
-    ;;
-  *)
-    echo "Unknown cluster: $CLUSTER"
-    exit 1
-    ;;
-esac
+echo "=== Setting up kubectl for Talos cluster ==="
 
-echo "Setting up kubectl for $CLUSTER cluster..."
+# Talos cluster configuration
+VIP="192.168.1.240"
+KUBECONFIG_PATH="$HOME/.kube/config"
+
+echo "Setting up kubectl for Talos cluster..."
 
 # Create .kube directory if it doesn't exist
 mkdir -p ~/.kube
 
-# Copy kubeconfig from master
-echo "Copying kubeconfig from $MASTER_IP..."
-scp dtaylor@${MASTER_IP}:/etc/rancher/k3s/k3s.yaml ~/.kube/${CONFIG_NAME}
+# Get kubeconfig from Talos
+echo "Retrieving kubeconfig from Talos cluster..."
+if ! talosctl kubeconfig --merge=false > kubeconfig-temp; then
+    echo "Error: Failed to retrieve kubeconfig"
+    exit 1
+fi
 
-# Update server address
-sed -i "s/127.0.0.1/${MASTER_IP}/g" ~/.kube/${CONFIG_NAME}
+# Backup existing config if it exists
+if [[ -f "$KUBECONFIG_PATH" ]]; then
+    backup="$KUBECONFIG_PATH.backup-$(date +%Y%m%d-%H%M%S)"
+    echo "Backing up existing kubeconfig to $backup"
+    cp "$KUBECONFIG_PATH" "$backup"
+fi
 
-# Set KUBECONFIG
-export KUBECONFIG=~/.kube/${CONFIG_NAME}
-echo "export KUBECONFIG=~/.kube/${CONFIG_NAME}" >> ~/.bashrc
+# Copy to standard location
+cp kubeconfig-temp "$KUBECONFIG_PATH"
+rm -f kubeconfig-temp
+
+echo "Kubeconfig saved to $KUBECONFIG_PATH"
+
+# Set KUBECONFIG environment variable for current session
+export KUBECONFIG="$KUBECONFIG_PATH"
+echo "export KUBECONFIG=\"$KUBECONFIG_PATH\"" >> ~/.bashrc
 
 # Test connection
+echo ""
 echo "Testing connection..."
-kubectl get nodes
-
-echo "kubectl configured for $CLUSTER cluster!"
-echo "To use: export KUBECONFIG=~/.kube/${CONFIG_NAME}"
+if kubectl get nodes -o wide; then
+    echo ""
+    echo "kubectl configured successfully for Talos cluster!"
+    echo "API Server: https://$VIP:6443"
+    echo "Kubeconfig: $KUBECONFIG_PATH"
+    echo ""
+    echo "To use kubectl in new sessions, ensure KUBECONFIG is set:"
+    echo "export KUBECONFIG=\"$KUBECONFIG_PATH\""
+else
+    echo "Error: Failed to connect to cluster"
+    echo ""
+    echo "Troubleshooting:"
+    echo "1. Ensure Talos cluster is bootstrapped and healthy"
+    echo "2. Check talosctl configuration: talosctl config info"
+    echo "3. Verify cluster health: talosctl health"
+    exit 1
+fi
