@@ -6,11 +6,11 @@ machine:
   features:
     rbac: true
     
-  # Network settings for control plane
+  # Network settings for control plane with VIP
   network:
     interfaces:
       - interface: eth0
-        dhcp: false
+        dhcp: true  # Use DHCP for primary IP
         vip:
           ip: 192.168.1.240  # Shared VIP for HA
           
