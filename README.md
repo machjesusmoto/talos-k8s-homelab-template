@@ -12,10 +12,10 @@ This project deploys a highly available Kubernetes cluster using Talos Linux, de
 ┌─────────────────────────────────────────────────────────────┐
 │                    Talos Linux K8s Cluster                   │
 ├─────────────────────────────────────────────────────────────┤
-│  Control Plane (3 nodes)    │  Worker Nodes (optional)      │
+│  Control Plane (3 nodes)    │  Worker Nodes (2 nodes)       │
 │  ├── talos-cp-01           │  ├── talos-worker-01         │
-│  ├── talos-cp-02           │  ├── talos-worker-02         │
-│  └── talos-cp-03           │  └── talos-worker-03         │
+│  ├── talos-cp-02           │  └── talos-worker-02         │
+│  └── talos-cp-03           │                               │
 ├─────────────────────────────────────────────────────────────┤
 │                    Kubernetes Workloads                      │
 │  ├── Media Stack (*arr apps, downloaders)                   │
@@ -30,6 +30,13 @@ External Services:
 - Active Directory (Authentication)
 ```
 
+### Resource Allocation
+
+All nodes: **4 vCPU, 8GB RAM, 100GB disk**
+- Total cluster: **20 vCPU, 40GB RAM**
+- Highly available control plane
+- Dedicated worker nodes for workload isolation
+
 ### Why Talos Linux?
 
 - **Immutable**: Read-only OS, no SSH, no shell
@@ -42,21 +49,25 @@ External Services:
 - [ ] Proxmox hosts ready
 - [ ] Network configured (VLANs, DNS)
 - [ ] TrueNAS NFS exports configured
-- [ ] Talos Linux ISO downloaded
+- [ ] Talos Linux ISO downloaded (with QEMU guest agent)
 - [ ] `talosctl` installed on workstation
 
 ## Quick Start
 
-1. **Configure Talos** (see `talos/controlplane.yaml` and `talos/worker.yaml`)
-2. **Deploy VMs** using provided Proxmox scripts
-3. **Bootstrap cluster** with `talosctl`
-4. **Deploy applications** via GitOps
+1. **Generate custom ISO** with `scripts/build-talos-image.ps1`
+2. **Deploy VMs** using Proxmox (5 nodes total)
+3. **Generate configs** with `scripts/generate-configs.sh`
+4. **Apply configs** with `scripts/apply-configs.sh`
+5. **Bootstrap cluster** with `scripts/bootstrap-cluster.sh`
+6. **Deploy applications** via GitOps
 
 ## Project Structure
 
 ```
 .
 ├── talos/              # Talos configuration files
+│   ├── patches/        # Node-specific configurations
+│   └── schematic.yaml  # Custom image definition
 ├── kubernetes/         # Kubernetes manifests
 │   ├── core/          # Core infrastructure
 │   ├── apps/          # Applications
@@ -72,6 +83,8 @@ External Services:
 | talos-cp-01 | 192.168.1.241 | Control Plane |
 | talos-cp-02 | 192.168.1.242 | Control Plane |
 | talos-cp-03 | 192.168.1.243 | Control Plane |
+| talos-worker-01 | 192.168.1.244 | Worker |
+| talos-worker-02 | 192.168.1.245 | Worker |
 | VIP | 192.168.1.240 | Kubernetes API |
 
 ## Getting Started

@@ -12,6 +12,12 @@ CP_NODES=(
     "192.168.1.243"
 )
 
+# Worker nodes
+WORKER_NODES=(
+    "192.168.1.244"
+    "192.168.1.245"
+)
+
 # Function to wait for node
 wait_for_node() {
     local node=$1
@@ -24,6 +30,7 @@ wait_for_node() {
 }
 
 # Apply configuration to each control plane node
+echo "=== Configuring Control Plane Nodes ==="
 for i in "${!CP_NODES[@]}"; do
     node="${CP_NODES[$i]}"
     node_num=$((i + 1))
@@ -43,6 +50,33 @@ for i in "${!CP_NODES[@]}"; do
     talosctl apply-config --insecure \
         --nodes $node \
         --file talos/controlplane-${node_num}.yaml
+    
+    # Wait for node to come up
+    wait_for_node $node
+done
+
+# Apply configuration to each worker node
+echo ""
+echo "=== Configuring Worker Nodes ==="
+for i in "${!WORKER_NODES[@]}"; do
+    node="${WORKER_NODES[$i]}"
+    node_num=$((i + 1))
+    
+    echo ""
+    echo "Configuring worker node $node_num ($node)..."
+    
+    # Create patched config for this specific node
+    talosctl machineconfig patch talos/worker-base.yaml \
+        --patch @talos/patches/common.yaml \
+        --patch @talos/patches/worker.yaml \
+        --patch @talos/patches/worker-0${node_num}.yaml \
+        --output talos/worker-${node_num}.yaml
+    
+    # Apply configuration
+    echo "Applying configuration to $node..."
+    talosctl apply-config --insecure \
+        --nodes $node \
+        --file talos/worker-${node_num}.yaml
     
     # Wait for node to come up
     wait_for_node $node
