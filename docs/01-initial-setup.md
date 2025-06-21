@@ -42,16 +42,16 @@ $CLUSTER_ENDPOINT="192.168.1.240"  # Your VIP
 # Generate control plane config
 talosctl gen config $CLUSTER_NAME https://${CLUSTER_ENDPOINT}:6443 `
   --with-secrets secrets.yaml `
-  --config-patch @talos/patches/common.yaml `
-  --config-patch @talos/patches/controlplane.yaml `
+  --config-patch talos/patches/common.yaml `
+  --config-patch talos/patches/controlplane.yaml `
   --output talos/controlplane.yaml `
   --output-types controlplane
 
 # Generate worker config (if using separate workers)
 talosctl gen config $CLUSTER_NAME https://${CLUSTER_ENDPOINT}:6443 `
   --with-secrets secrets.yaml `
-  --config-patch @talos/patches/common.yaml `
-  --config-patch @talos/patches/worker.yaml `
+  --config-patch talos/patches/common.yaml `
+  --config-patch talos/patches/worker.yaml `
   --output talos/worker.yaml `
   --output-types worker
 ```
