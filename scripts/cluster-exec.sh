@@ -1,35 +1,76 @@
 #!/bin/bash
-# Usage: ./cluster-exec.sh <cluster> "command to run"
+# Execute commands across Talos cluster nodes - Linux version
+# Usage: ./cluster-exec.sh <target> "command to run"
 
-CLUSTER=$1
+TARGET=$1
 COMMAND=$2
 
-if [[ -z "$CLUSTER" || -z "$COMMAND" ]]; then
-  echo "Usage: $0 <cluster> <command>"
-  echo "Clusters: dev, test, prod, all"
+if [[ -z "$TARGET" || -z "$COMMAND" ]]; then
+  echo "Usage: $0 <target> \"<command>\""
+  echo "Targets: cp|controlplane, workers, all"
+  echo ""
+  echo "Examples:"
+  echo "  $0 cp \"uptime\""
+  echo "  $0 workers \"df -h\""
+  echo "  $0 all \"free -h\""
   exit 1
 fi
 
-case $CLUSTER in
-  dev)
-    HOSTS="docker-dev-01 docker-dev-02 docker-dev-03"
+# Node definitions
+CONTROL_PLANES=("192.168.1.241" "192.168.1.242" "192.168.1.243")
+WORKERS=("192.168.1.244" "192.168.1.245")
+
+# Determine target nodes
+case $TARGET in
+  cp|controlplane)
+    TARGET_NODES=("${CONTROL_PLANES[@]}")
+    TARGET_NAME="Control Plane"
     ;;
-  test)
-    HOSTS="docker-test-01 docker-test-02 docker-test-03"
-    ;;
-  prod)
-    HOSTS="docker-prod-01 docker-prod-02 docker-prod-03"
+  workers)
+    TARGET_NODES=("${WORKERS[@]}")
+    TARGET_NAME="Worker"
     ;;
   all)
-    HOSTS="docker-dev-01 docker-dev-02 docker-dev-03 docker-test-01 docker-test-02 docker-test-03 docker-prod-01 docker-prod-02 docker-prod-03"
+    TARGET_NODES=("${CONTROL_PLANES[@]}" "${WORKERS[@]}")
+    TARGET_NAME="All"
     ;;
   *)
-    echo "Unknown cluster: $CLUSTER"
+    echo "Unknown target: $TARGET"
+    echo "Valid targets: cp|controlplane, workers, all"
     exit 1
     ;;
 esac
 
-for host in $HOSTS; do
-  echo -e "\n=== $host ==="
-  ssh dtaylor@${host} "$COMMAND"
+echo "=== Executing command on $TARGET_NAME nodes ==="
+echo "Command: $COMMAND"
+echo "Nodes: ${TARGET_NODES[*]}"
+echo ""
+
+success_count=0
+fail_count=0
+
+for node in "${TARGET_NODES[@]}"; do
+  echo "=== Node: $node ==="
+  
+  # Execute command via talosctl
+  if talosctl exec --nodes "$node" -- $COMMAND; then
+    ((success_count++))
+  else
+    echo "Command failed on $node"
+    ((fail_count++))
+  fi
+  
+  echo ""
 done
+
+# Summary
+echo "=== Execution Summary ==="
+echo "Successful: $success_count"
+echo "Failed: $fail_count"
+echo "Total nodes: ${#TARGET_NODES[@]}"
+
+if [[ $fail_count -gt 0 ]]; then
+    echo ""
+    echo "Some commands failed. Check the output above for details."
+    exit 1
+fi
