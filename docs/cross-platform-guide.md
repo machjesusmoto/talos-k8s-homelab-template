@@ -55,11 +55,6 @@ winget install SiderolabsInc.talosctl
 # Or using Chocolatey
 choco install talosctl
 
-# Or manual installation
-$version = "v1.9.0"  # Check latest version at github.com/siderolabs/talos
-$url = "https://github.com/siderolabs/talos/releases/download/$version/talosctl-windows-amd64.exe"
-Invoke-WebRequest -Uri $url -OutFile "$env:ProgramFiles\talosctl.exe"
-
 # Verify installation
 talosctl version --client
 ```
@@ -71,11 +66,6 @@ winget install Kubernetes.kubectl
 
 # Or using Chocolatey
 choco install kubernetes-cli
-
-# Or manual installation
-$version = "v1.31.0"  # Check latest stable version
-$url = "https://dl.k8s.io/release/$version/bin/windows/amd64/kubectl.exe"
-Invoke-WebRequest -Uri $url -OutFile "$env:ProgramFiles\kubectl.exe"
 
 # Verify installation
 kubectl version --client
@@ -93,8 +83,6 @@ cd /path/to/k8s-homelab-migration
 # Build custom Talos image with QEMU guest agent
 chmod +x scripts/build-talos-image.sh
 ./scripts/build-talos-image.sh
-
-# The script will output the custom ISO download URL
 ```
 
 #### Windows
@@ -104,8 +92,6 @@ cd C:\path\to\k8s-homelab-migration
 
 # Build custom Talos image
 .\scripts\build-talos-image.ps1
-
-# The script will output the custom ISO download URL
 ```
 
 ### Phase 2: Deploy VMs in Proxmox
@@ -151,6 +137,8 @@ Copy-Item secrets.yaml secrets.yaml.backup
 
 ### Phase 4: Apply Configurations
 
+⚠️ **Critical Step**: The apply-configs script now automatically handles ISO ejection to prevent boot loops.
+
 #### Linux
 ```bash
 # Apply configurations to all nodes
@@ -160,9 +148,15 @@ chmod +x scripts/apply-configs.sh
 
 #### Windows
 ```powershell
-# Apply configurations to all nodes
+# Apply configurations to all nodes (with automatic ISO handling)
 .\scripts\apply-configs.ps1
 ```
+
+**What happens during this step**:
+- Configurations are applied to each node
+- Script attempts automatic ISO ejection (if Proxmox tools available)
+- Nodes restart automatically with applied configurations
+- Script waits for nodes to come back online
 
 ### Phase 5: Bootstrap Cluster
 
@@ -201,121 +195,68 @@ chmod +x scripts/setup-kubectl.sh
 .\scripts\setup-kubectl.ps1
 ```
 
-## Common Commands
-
-### Cluster Management
-
-#### Linux
-```bash
-# Check cluster health
-talosctl health
-
-# Get cluster information
-talosctl cluster show
-
-# Execute commands on nodes
-./scripts/cluster-exec.sh cp "uptime"
-./scripts/cluster-exec.sh workers "df -h"
-./scripts/cluster-exec.sh all "free -h"
-
-# View logs
-talosctl logs --follow
-```
-
-#### Windows
-```powershell
-# Check cluster health
-talosctl health
-
-# Get cluster information
-talosctl cluster show
-
-# Execute commands on nodes
-.\scripts\cluster-exec.ps1 cp "uptime"
-.\scripts\cluster-exec.ps1 workers "df -h"
-.\scripts\cluster-exec.ps1 all "free -h"
-
-# View logs
-talosctl logs --follow
-```
-
-### Kubernetes Operations
-
-Both platforms use the same kubectl commands:
-```bash
-# Get cluster nodes
-kubectl get nodes -o wide
-
-# Check system pods
-kubectl get pods -A
-
-# Apply core infrastructure
-kubectl apply -k kubernetes/core/
-
-# Deploy applications
-kubectl apply -k kubernetes/apps/
-```
-
 ## Troubleshooting
 
 ### Common Issues
 
-1. **Network connectivity problems**:
+1. **VIP Connectivity Problems**:
+   - Error: `dial tcp 192.168.1.240:6443: connect: no route to host`
+   - **Solution**: VIP configuration issue - ensure `dhcp: true` in controlplane.yaml
+   - **Fix**: Update patches and reapply configurations
+
+2. **ISO Boot Loop**:
+   - Nodes keep booting from ISO after configuration
+   - **Solution**: Ensure ISO is detached after applying configurations
+   - **Prevention**: Updated apply-configs script handles this automatically
+
+3. **Certificate Verification Errors**:
+   - Error: `x509: certificate signed by unknown authority`
+   - **Solution**: Usually means configs weren't applied properly
+   - **Fix**: Ensure nodes rebooted cleanly from disk after config application
+
+4. **Network connectivity problems**:
    - Ensure VLAN 1200 is properly configured
    - Check firewall rules for ports 50000 (Talos) and 6443 (Kubernetes)
    - Verify DNS resolution for all nodes
 
-2. **Configuration application failures**:
-   - Ensure all VMs are running and accessible
-   - Check that the custom ISO is properly mounted
-   - Verify IP addresses match the configuration
+### Recovery Steps
 
-3. **Bootstrap failures**:
-   - Ensure only the first control plane node (192.168.1.241) is bootstrapped
-   - Wait for all nodes to be Ready before proceeding
-   - Check `talosctl health` output for specific errors
+If deployment fails:
 
-### Platform-Specific Notes
-
-#### Linux
-- Use `sudo` for operations requiring elevated privileges
-- Scripts use bash-specific features (arrays, etc.)
-- File paths use forward slashes
-
-#### Windows
-- Run PowerShell as Administrator when needed
-- Scripts use PowerShell cmdlets and .NET methods
-- File paths use backslashes
-- Some commands may need different syntax (e.g., environment variables)
-
-## Security Considerations
-
-1. **secrets.yaml**: Never commit this file to version control
-2. **Backup**: Always backup secrets.yaml before making changes
-3. **Access**: Limit access to talosctl configuration files
-4. **Network**: Use firewalls to restrict access to cluster nodes
-5. **Updates**: Regularly update Talos and Kubernetes versions
-
-## Next Steps
-
-After successful deployment:
-
-1. **Deploy Core Infrastructure**: Storage, networking, ingress
-2. **Set up GitOps**: ArgoCD or Flux for automated deployments
-3. **Configure Monitoring**: Prometheus, Grafana, alerts
-4. **Migrate Applications**: Move services from Docker Swarm
-5. **Implement Backup**: Velero or similar backup solutions
+1. **Reboot all nodes** from Talos ISO (clean slate)
+2. **Pull latest changes**: `git pull origin main`
+3. **Regenerate configurations**: Run generate-configs script
+4. **Reapply with ISO handling**: Run apply-configs script
+5. **Bootstrap**: Run bootstrap script
 
 ## Script Reference
 
-| Operation | Linux Script | Windows Script |
-|-----------|-------------|----------------|
-| Build Image | `build-talos-image.sh` | `build-talos-image.ps1` |
-| Generate Configs | `generate-configs.sh` | `generate-configs.ps1` |
-| Apply Configs | `apply-configs.sh` | `apply-configs.ps1` |
-| Bootstrap | `bootstrap-cluster.sh` | `bootstrap-cluster.ps1` |
-| Verify Access | `verify-access.sh` | `verify-access.ps1` |
-| Setup kubectl | `setup-kubectl.sh` | `setup-kubectl.ps1` |
-| Cluster Exec | `cluster-exec.sh` | `cluster-exec.ps1` |
+| Operation | Linux Script | Windows Script | Key Features |
+|-----------|-------------|----------------|---------------|
+| Build Image | `build-talos-image.sh` | `build-talos-image.ps1` | Custom Talos ISO with QEMU agent |
+| Generate Configs | `generate-configs.sh` | `generate-configs.ps1` | Creates cluster configurations |
+| Apply Configs | `apply-configs.sh` | `apply-configs.ps1` | **Auto ISO ejection, restart handling** |
+| Bootstrap | `bootstrap-cluster.sh` | `bootstrap-cluster.ps1` | **Fixed VIP connectivity, better error handling** |
+| Verify Access | `verify-access.sh` | `verify-access.ps1` | Comprehensive health checking |
+| Setup kubectl | `setup-kubectl.sh` | `setup-kubectl.ps1` | Configure kubectl access |
+| Cluster Exec | `cluster-exec.sh` | `cluster-exec.ps1` | Run commands on nodes |
+| **Diagnose** | - | `diagnose-cluster.ps1` | **Troubleshoot configuration issues** |
+
+## Recent Improvements
+
+### Enhanced Configuration Handling
+- **Fixed VIP configuration**: Now uses `dhcp: true` with VIP overlay
+- **Automatic ISO ejection**: Prevents boot loops after configuration
+- **Better error handling**: Clear guidance for troubleshooting
+
+### Cross-Platform Compatibility
+- **Complete script parity**: Every operation available on both platforms
+- **Platform-native approaches**: Uses appropriate tools and syntax
+- **Consistent user experience**: Same functionality across platforms
+
+### Robust Deployment Process
+- **Prerequisites checking**: Validates requirements before proceeding
+- **Progressive health checks**: Verifies each step before continuing
+- **Recovery guidance**: Clear instructions for common issues
 
 All scripts include error handling, progress indicators, and helpful output to guide you through the deployment process.
