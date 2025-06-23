@@ -9,7 +9,8 @@ machine:
   # Network settings for control plane with VIP
   network:
     interfaces:
-      - interface: eth0
+      - deviceSelector:
+          driver: virtio_net  # Ensure we select the virtio network device
         dhcp: true  # Use DHCP for primary IP
         vip:
           ip: 192.168.1.240  # Shared VIP for HA
@@ -20,7 +21,11 @@ cluster:
   
   # Control plane endpoint (VIP)
   controlPlane:
-    endpoint: https://192.168.1.240:6443
+    endpoint: https://homelab-k8s.dttesting.com:6443
+    
+  # Enable kube-proxy for service routing
+  proxy:
+    disabled: false
     
   # etcd configuration for HA
   etcd:
@@ -32,6 +37,9 @@ cluster:
       
   # API server configuration
   apiServer:
+    certSANs:
+      - 192.168.1.240
+      - homelab-k8s.dttesting.com
     extraArgs:
       anonymous-auth: "false"
       profiling: "false"

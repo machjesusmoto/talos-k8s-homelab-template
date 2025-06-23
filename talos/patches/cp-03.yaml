@@ -1,14 +1,10 @@
-# Control Plane Node 3 - Static IP Configuration
+# Control Plane Node 3 - DHCP with VIP
 machine:
   network:
     hostname: talos-cp-03
     interfaces:
-      - interface: eth0
-        dhcp: false
-        addresses:
-          - 192.168.1.243/24
-        routes:
-          - network: 0.0.0.0/0
-            gateway: 192.168.1.1
+      - deviceSelector:
+          driver: virtio_net
+        dhcp: true
         vip:
           ip: 192.168.1.240

@@ -19,7 +19,7 @@ machine:
       
   # Kubelet configuration
   kubelet:
-    image: ghcr.io/siderolabs/kubelet:${KUBERNETES_VERSION}
+    image: ghcr.io/siderolabs/kubelet:v1.32.6
     extraArgs:
       feature-gates: GracefulNodeShutdown=true
       rotate-certificates: "true"
