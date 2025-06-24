@@ -170,6 +170,49 @@ dial tcp 10.96.0.1:443: i/o timeout
    argocd repo add <repo-url> --username <username> --password <token>
    ```
 
+### Kustomization Build Errors
+
+**Symptom**: "Failed to load target state: failed to generate manifest"
+
+**Cause**: Duplicate namespace definitions or invalid kustomization.yaml
+
+**Solution**:
+1. Check for duplicate namespace definitions:
+   ```bash
+   # Look for namespaces created by external manifests
+   grep -r "kind: Namespace" kubernetes/core/
+   ```
+2. Remove duplicate namespaces from `namespaces.yaml` if external manifests create them
+3. Common duplicates: metallb-system, cert-manager, ingress-nginx
+
+### ArgoCD Login Issues with CLI
+
+**Symptom**: "EOF" error or TLS prompts when using argocd CLI
+
+**Solution**:
+1. Use echo to auto-accept insecure connection:
+   ```bash
+   echo y | ~/bin/argocd login 192.168.1.210 --username admin --password 'your-password' --insecure --grpc-web
+   ```
+2. For HTTP-only setups, always use `--grpc-web` flag
+
+### Existing Resources Conflict
+
+**Symptom**: "resource already exists" during ArgoCD sync
+
+**Cause**: Resources manually deployed before GitOps
+
+**Solution**:
+1. Import existing resources with force sync:
+   ```bash
+   ~/bin/argocd app sync <app-name> --force
+   ```
+2. Or delete existing resources and let ArgoCD recreate:
+   ```bash
+   kubectl delete -k kubernetes/core/
+   ~/bin/argocd app sync core-infrastructure
+   ```
+
 ## Certificate Management
 
 ### cert-manager Webhook Errors

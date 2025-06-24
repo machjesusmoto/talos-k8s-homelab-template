@@ -8,14 +8,17 @@ ArgoCD has been successfully deployed to manage the Kubernetes cluster through G
 
 ### ArgoCD UI Access
 - **LoadBalancer URL**: http://192.168.1.210
-- **Ingress URL**: https://argocd.homelab-k8s.dttesting.com
+- **Ingress URL**: https://argocd.k8s.lan (once DNS is configured)
 - **Username**: admin
-- **Password**: Retrieved from secret (see below)
+- **Password**: Changed from initial (see security note below)
 
-### Get Admin Password
+### Initial Admin Password
 ```bash
+# Get the initial admin password
 kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d
 ```
+
+**Security Note**: The admin password has been changed from the initial password. Store the new password securely.
 
 ## GitOps Structure
 
@@ -69,12 +72,46 @@ A Let's Encrypt production ClusterIssuer has been configured:
 - **ACME Server**: Let's Encrypt Production
 - **Solver**: HTTP-01 with nginx ingress
 
+## Current Deployment Status
+
+### Applications Deployed
+1. **root-application**: ✅ Synced and Healthy
+   - Manages all other ArgoCD applications
+   
+2. **core-infrastructure**: ✅ Synced (with minor warnings)
+   - kube-proxy: ✅ Running (required for service routing)
+   - MetalLB: ✅ Running (LoadBalancer services)
+   - NGINX Ingress: ✅ Running
+   - cert-manager: ✅ Running (with webhook settling)
+   - NFS CSI Driver: ✅ Running
+
+### Known Issues (Non-blocking)
+- **ClusterIssuer webhook validation**: Will resolve once cert-manager fully settles
+- **BGPPeers CRD**: Out of sync (not needed for L2 mode)
+- **Shared resource warnings**: Multiple apps managing cert-manager CRDs (expected)
+
+## Installing ArgoCD CLI
+
+```bash
+# Linux
+curl -sSL -o ~/bin/argocd https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
+chmod +x ~/bin/argocd
+
+# Windows (PowerShell as Administrator)
+$url = "https://github.com/argoproj/argo-cd/releases/latest/download/argocd-windows-amd64.exe"
+Invoke-WebRequest -Uri $url -OutFile "$env:LOCALAPPDATA\Microsoft\WindowsApps\argocd.exe"
+```
+
+## ArgoCD CLI Login
+
+```bash
+# Login to ArgoCD (will prompt for TLS warning)
+echo y | ~/bin/argocd login 192.168.1.210 --username admin --password '<your-password>' --insecure --grpc-web
+```
+
 ## Next Steps
 
-1. **Change Admin Password**: 
-   ```bash
-   argocd account update-password
-   ```
+1. **Configure DNS**: Add argocd.k8s.lan to your DNS resolver
 
 2. **Configure RBAC**: Set up additional users and permissions
 

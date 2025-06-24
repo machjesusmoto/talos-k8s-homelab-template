@@ -74,8 +74,15 @@ talos/metal-amd64-qemu.iso
 
 # ArgoCD CLI configuration
 .argocd/
+argocd
 
 # Diagnostic output
 logs/
 diagnostics/
 support-bundle-*.tar.gz
+
+# ArgoCD admin password or credentials
+*-password.txt
+*-credentials.txt
+admin-password
+.env
