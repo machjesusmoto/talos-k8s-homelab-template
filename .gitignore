@@ -86,3 +86,6 @@ support-bundle-*.tar.gz
 *-credentials.txt
 admin-password
 .env
+
+# Cloudflare API token
+kubernetes/core/cert-manager/secrets/cloudflare-api-token.yaml

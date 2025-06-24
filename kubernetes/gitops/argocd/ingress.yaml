@@ -11,10 +11,10 @@ spec:
   ingressClassName: nginx
   tls:
     - hosts:
-        - argocd.homelab-k8s.dttesting.com
+        - argocd.k8s.dttesting.com
       secretName: argocd-server-tls
   rules:
-    - host: argocd.homelab-k8s.dttesting.com
+    - host: argocd.k8s.dttesting.com
       http:
         paths:
           - path: /
