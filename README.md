@@ -17,11 +17,17 @@ This project deploys a highly available Kubernetes cluster using Talos Linux, de
 │  ├── talos-cp-02           │  └── talos-worker-02         │
 │  └── talos-cp-03           │                               │
 ├─────────────────────────────────────────────────────────────┤
+│                 Core Infrastructure                          │
+│  ├── ArgoCD (GitOps Controller)                            │
+│  ├── MetalLB (LoadBalancer Services)                       │
+│  ├── Ingress-nginx (HTTP/HTTPS Ingress)                    │
+│  ├── cert-manager (TLS Certificates)                       │
+│  └── NFS CSI Driver (Persistent Storage)                   │
+├─────────────────────────────────────────────────────────────┤
 │                    Kubernetes Workloads                      │
 │  ├── Media Stack (*arr apps, downloaders)                   │
 │  ├── Monitoring (Prometheus, Grafana)                       │
-│  ├── GitOps (Flux/ArgoCD)                                  │
-│  └── Ingress (Traefik/Nginx)                               │
+│  └── Home Automation (Home Assistant, etc.)                │
 └─────────────────────────────────────────────────────────────┘
 
 External Services:
@@ -99,6 +105,10 @@ All nodes: **4 vCPU, 8GB RAM, 100GB disk**
 🤖 **[Claude Code Integration](CLAUDE.md)** - Guide for using with Claude Code
 
 📚 **[Detailed Setup Guide](docs/01-initial-setup.md)** - In-depth deployment instructions
+
+🚀 **[GitOps Setup with ArgoCD](docs/02-gitops-setup.md)** - ArgoCD deployment and configuration
+
+🔧 **[Troubleshooting Guide](docs/03-troubleshooting.md)** - Common issues and solutions
 
 ## Project Structure
 

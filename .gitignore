@@ -55,3 +55,27 @@ talos/talosconfig
 talos/controlplane-*.yaml
 talos/worker-*.yaml
 talos/*-base.yaml
+
+# ArgoCD temporary files
+kubernetes/gitops/applications/root-app.yaml.tmp
+kubernetes/gitops/applications/*.tmp
+
+# Generated ISO files
+*.iso
+talos/metal-amd64-qemu.iso
+
+# Backup files
+*.orig
+*.save
+
+# Local override files
+*-local.yaml
+*.local
+
+# ArgoCD CLI configuration
+.argocd/
+
+# Diagnostic output
+logs/
+diagnostics/
+support-bundle-*.tar.gz

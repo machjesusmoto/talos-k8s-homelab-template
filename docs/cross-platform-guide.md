@@ -195,6 +195,72 @@ chmod +x scripts/setup-kubectl.sh
 .\scripts\setup-kubectl.ps1
 ```
 
+### Phase 7: Deploy Core Infrastructure
+
+#### Linux
+```bash
+# Deploy core Kubernetes infrastructure
+kubectl apply -k kubernetes/core/
+```
+
+#### Windows
+```powershell
+# Deploy core Kubernetes infrastructure
+kubectl apply -k kubernetes/core/
+```
+
+**Components deployed**:
+- kube-proxy (required for service routing)
+- MetalLB (LoadBalancer services)
+- Ingress-nginx (HTTP/HTTPS ingress)
+- cert-manager (TLS certificates)
+- NFS CSI driver (persistent storage)
+
+### Phase 8: Deploy ArgoCD for GitOps
+
+#### Linux
+```bash
+# Deploy ArgoCD
+kubectl apply -k kubernetes/gitops/argocd/
+
+# Configure ArgoCD for GitOps
+chmod +x scripts/configure-argocd.sh
+./scripts/configure-argocd.sh
+
+# Get admin password
+kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d
+```
+
+#### Windows
+```powershell
+# Deploy ArgoCD
+kubectl apply -k kubernetes/gitops/argocd/
+
+# Configure ArgoCD for GitOps
+.\scripts\configure-argocd.ps1
+
+# Get admin password
+$password = kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}"
+[System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($password))
+```
+
+**ArgoCD Access**:
+- LoadBalancer: http://192.168.1.210
+- Ingress: https://argocd.homelab-k8s.dttesting.com
+- Username: admin
+
+### Phase 9: Enable GitOps
+
+```bash
+# Commit all changes
+git add .
+git commit -m "Add cluster configuration and ArgoCD setup"
+git push origin main
+
+# Apply root application for GitOps
+kubectl apply -f kubernetes/gitops/applications/root-app.yaml
+```
+
 ## Troubleshooting
 
 ### Common Issues
@@ -241,6 +307,7 @@ If deployment fails:
 | Setup kubectl | `setup-kubectl.sh` | `setup-kubectl.ps1` | Configure kubectl access |
 | Cluster Exec | `cluster-exec.sh` | `cluster-exec.ps1` | Run commands on nodes |
 | **Diagnose** | - | `diagnose-cluster.ps1` | **Troubleshoot configuration issues** |
+| **Configure ArgoCD** | `configure-argocd.sh` | `configure-argocd.ps1` | **Setup GitOps with ArgoCD** |
 
 ## Recent Improvements
 
@@ -259,4 +326,25 @@ If deployment fails:
 - **Progressive health checks**: Verifies each step before continuing
 - **Recovery guidance**: Clear instructions for common issues
 
+### GitOps Integration
+- **ArgoCD deployment**: Enterprise-standard GitOps controller
+- **App-of-apps pattern**: Scalable application management
+- **Automatic sync**: Changes in Git automatically deployed to cluster
+- **Self-healing**: Drift detection and automatic correction
+
 All scripts include error handling, progress indicators, and helpful output to guide you through the deployment process.
+
+## Complete Deployment Summary
+
+The full deployment process:
+1. Build custom Talos image
+2. Generate cluster configurations
+3. Apply configs to nodes (with auto ISO ejection)
+4. Bootstrap the cluster
+5. Verify cluster health
+6. Deploy core infrastructure
+7. Deploy and configure ArgoCD
+8. Enable GitOps with root application
+9. Access ArgoCD UI for monitoring
+
+Total deployment time: ~30-45 minutes for a complete cluster with GitOps.
