@@ -222,18 +222,71 @@ dial tcp 10.96.0.1:443: i/o timeout
 failed calling webhook "webhook.cert-manager.io": x509: certificate signed by unknown authority
 ```
 
-**Cause**: Webhook certificate not properly injected
+**Cause**: Webhook certificate not properly injected or webhook configuration corrupted
 
 **Solution**:
-1. Delete and recreate webhook:
+1. Delete webhook configurations:
    ```bash
    kubectl delete validatingwebhookconfiguration cert-manager-webhook
-   kubectl apply -k kubernetes/core/cert-manager/
+   kubectl delete mutatingwebhookconfiguration cert-manager-webhook
    ```
-2. Restart cert-manager:
+2. Reapply cert-manager to restore configurations:
    ```bash
-   kubectl rollout restart deployment -n cert-manager
+   kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.16.2/cert-manager.yaml
    ```
+3. Wait for webhook to be ready:
+   ```bash
+   kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=webhook -n cert-manager --timeout=60s
+   ```
+4. Temporarily disable webhook validation if needed:
+   ```bash
+   kubectl annotate validatingwebhookconfiguration cert-manager-webhook cert-manager.io/disable-validation=true
+   # Apply ClusterIssuers
+   kubectl annotate validatingwebhookconfiguration cert-manager-webhook cert-manager.io/disable-validation-
+   ```
+
+### DNS-01 Challenge Issues
+
+**Symptom**: 
+```
+Error: 6003: Invalid request headers<- 6111: Invalid format for Authorization header
+```
+
+**Cause**: Malformed Cloudflare API token (often trailing quotes or spaces)
+
+**Solution**:
+1. Check the API token secret:
+   ```bash
+   kubectl get secret cloudflare-api-token-secret -n cert-manager -o jsonpath='{.data.api-token}' | base64 -d
+   ```
+2. Fix the token if it has extra characters:
+   ```bash
+   kubectl patch secret cloudflare-api-token-secret -n cert-manager --type='json' \
+     -p='[{"op": "replace", "path": "/data/api-token", "value": "'$(echo -n 'CLEAN_TOKEN_HERE' | base64 -w0)'"}]'
+   ```
+3. Delete and recreate certificates to retry:
+   ```bash
+   kubectl delete certificate <cert-name> -n <namespace>
+   kubectl apply -f <certificate-file>
+   ```
+
+### Challenge Stuck in Pending
+
+**Symptom**: DNS challenge remains pending for >5 minutes
+
+**Cause**: DNS propagation delays or API permission issues
+
+**Solution**:
+1. Check challenge details:
+   ```bash
+   kubectl describe challenge <challenge-name> -n <namespace>
+   ```
+2. Verify API token permissions in Cloudflare
+3. Check DNS propagation:
+   ```bash
+   dig _acme-challenge.your-domain.com TXT
+   ```
+4. Wait for propagation (can take up to 10 minutes)
 
 ### Let's Encrypt Rate Limits
 

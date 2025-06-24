@@ -8,7 +8,7 @@ ArgoCD has been successfully deployed to manage the Kubernetes cluster through G
 
 ### ArgoCD UI Access
 - **LoadBalancer URL**: http://192.168.1.210
-- **Ingress URL**: https://argocd.k8s.lan (once DNS is configured)
+- **Ingress URL**: https://argocd.k8s.dttesting.com (with SSL certificate)
 - **Username**: admin
 - **Password**: Changed from initial (see security note below)
 
@@ -67,10 +67,25 @@ kubernetes/
 
 ## Certificate Management
 
-A Let's Encrypt production ClusterIssuer has been configured:
+Let's Encrypt ClusterIssuers have been configured for DNS-01 challenge:
+
+### Production ClusterIssuer
+- **Name**: letsencrypt-prod
 - **Email**: admin@dttesting.com
 - **ACME Server**: Let's Encrypt Production
-- **Solver**: HTTP-01 with nginx ingress
+- **Solver**: DNS-01 with Cloudflare API
+
+### Staging ClusterIssuer  
+- **Name**: letsencrypt-staging
+- **Email**: admin@dttesting.com
+- **ACME Server**: Let's Encrypt Staging
+- **Solver**: DNS-01 with Cloudflare API
+
+### DNS-01 Challenge Configuration
+- **Provider**: Cloudflare
+- **Domain**: dttesting.com zone
+- **Subdomain**: k8s.dttesting.com
+- **API Token**: Stored in `cloudflare-api-token-secret` (excluded from git)
 
 ## Current Deployment Status
 
@@ -86,9 +101,9 @@ A Let's Encrypt production ClusterIssuer has been configured:
    - NFS CSI Driver: ✅ Running
 
 ### Known Issues (Non-blocking)
-- **ClusterIssuer webhook validation**: Will resolve once cert-manager fully settles
 - **BGPPeers CRD**: Out of sync (not needed for L2 mode)
 - **Shared resource warnings**: Multiple apps managing cert-manager CRDs (expected)
+- **Core-infrastructure OutOfSync**: Minor sync drift - components are healthy
 
 ## Installing ArgoCD CLI
 
@@ -109,17 +124,58 @@ Invoke-WebRequest -Uri $url -OutFile "$env:LOCALAPPDATA\Microsoft\WindowsApps\ar
 echo y | ~/bin/argocd login 192.168.1.210 --username admin --password '<your-password>' --insecure --grpc-web
 ```
 
+## DNS-01 Challenge Setup
+
+### 1. Cloudflare API Token Setup
+Create an API token at [Cloudflare Dashboard](https://dash.cloudflare.com/profile/api-tokens):
+- **Template**: Edit zone DNS
+- **Permissions**: Zone:DNS:Edit, Zone:Zone:Read  
+- **Zone Resources**: Include specific zone: dttesting.com
+
+### 2. Apply API Token Secret
+```bash
+# Edit the secret file with your token
+kubectl create secret generic cloudflare-api-token-secret \
+  --from-literal=api-token=your-cloudflare-api-token \
+  -n cert-manager
+```
+
+### 3. DNS Configuration
+Add DNS records in Cloudflare:
+```
+Type: A or CNAME
+Name: *.k8s.dttesting.com  
+Value: Your home IP or dynamic DNS
+```
+
+### 4. Local DNS (Optional)
+For local access without internet routing:
+```
+*.k8s.dttesting.com → 192.168.1.200 (NGINX LoadBalancer IP)
+```
+
+### 5. Certificate Usage
+Add to any Ingress for automatic SSL:
+```yaml
+metadata:
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod  # or letsencrypt-staging
+spec:
+  tls:
+  - hosts:
+    - your-app.k8s.dttesting.com
+    secretName: your-app-tls
+```
+
 ## Next Steps
 
-1. **Configure DNS**: Add argocd.k8s.lan to your DNS resolver
+1. **Configure RBAC**: Set up additional users and permissions
 
-2. **Configure RBAC**: Set up additional users and permissions
+2. **Add Applications**: Create ArgoCD applications for your workloads
 
-3. **Add Applications**: Create ArgoCD applications for your workloads
+3. **Setup Notifications**: Configure Slack/email alerts for sync status
 
-4. **Setup Notifications**: Configure Slack/email alerts for sync status
-
-5. **Enable SSO**: Configure Dex for OIDC/LDAP authentication
+4. **Enable SSO**: Configure Dex for OIDC/LDAP authentication
 
 ## Troubleshooting
 
