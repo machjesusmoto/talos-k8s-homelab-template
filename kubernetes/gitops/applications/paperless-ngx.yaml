@@ -1,0 +1,32 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: paperless-ngx
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+  labels:
+    app.kubernetes.io/name: paperless-ngx
+    app.kubernetes.io/part-of: homelab
+  annotations:
+    # Enable automatic image updates
+    argocd-image-updater.argoproj.io/image-list: "paperless=ghcr.io/paperless-ngx/paperless-ngx,postgres=postgres,redis=redis,gotenberg=gotenberg/gotenberg,tika=apache/tika"
+    argocd-image-updater.argoproj.io/update-strategy: "semver:^2.0.0,semver:^15.0.0,semver:^7.0.0,latest,latest"
+    argocd-image-updater.argoproj.io/write-back-method: "git"
+    argocd-image-updater.argoproj.io/git-commit-message: "chore: update paperless-ngx stack images 📄"
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/machjesusmoto/k8s-homelab-migration.git
+    targetRevision: main
+    path: kubernetes/apps/paperless-ngx
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: paperless
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+    - CreateNamespace=true
+    - ServerSideApply=true

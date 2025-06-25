@@ -11,3 +11,4 @@ resources:
   - argocd-image-updater.yaml
   - code-server.yaml
   - monitoring.yaml
+  - paperless-ngx.yaml

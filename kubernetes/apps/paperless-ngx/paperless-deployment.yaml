@@ -1,0 +1,211 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: paperless-ngx
+  namespace: paperless
+  labels:
+    app.kubernetes.io/name: paperless-ngx
+    app.kubernetes.io/component: application
+    app.kubernetes.io/part-of: homelab
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: paperless-ngx
+      app.kubernetes.io/component: application
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: paperless-ngx
+        app.kubernetes.io/component: application
+        app.kubernetes.io/part-of: homelab
+    spec:
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
+        fsGroup: 1000
+      containers:
+      - name: paperless
+        image: ghcr.io/paperless-ngx/paperless-ngx:2.6.3
+        env:
+        # Database configuration
+        - name: PAPERLESS_DBHOST
+          value: postgres
+        - name: PAPERLESS_DBNAME
+          valueFrom:
+            secretKeyRef:
+              name: paperless-secrets
+              key: POSTGRES_DB
+        - name: PAPERLESS_DBUSER
+          valueFrom:
+            secretKeyRef:
+              name: paperless-secrets
+              key: POSTGRES_USER
+        - name: PAPERLESS_DBPASS
+          valueFrom:
+            secretKeyRef:
+              name: paperless-secrets
+              key: POSTGRES_PASSWORD
+        # Redis configuration
+        - name: PAPERLESS_REDIS
+          value: redis://redis:6379
+        # Paperless configuration
+        - name: PAPERLESS_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: paperless-secrets
+              key: PAPERLESS_SECRET_KEY
+        - name: PAPERLESS_URL
+          value: https://paperless.k8s.dttesting.com
+        - name: PAPERLESS_TIME_ZONE
+          value: America/New_York
+        - name: PAPERLESS_OCR_LANGUAGE
+          value: eng
+        - name: PAPERLESS_OCR_LANGUAGES
+          value: eng fra spa deu
+        # Admin account
+        - name: PAPERLESS_ADMIN_USER
+          valueFrom:
+            secretKeyRef:
+              name: paperless-secrets
+              key: PAPERLESS_ADMIN_USER
+        - name: PAPERLESS_ADMIN_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: paperless-secrets
+              key: PAPERLESS_ADMIN_PASSWORD
+        - name: PAPERLESS_ADMIN_MAIL
+          valueFrom:
+            secretKeyRef:
+              name: paperless-secrets
+              key: PAPERLESS_ADMIN_MAIL
+        # Features
+        - name: PAPERLESS_CONSUMER_POLLING
+          value: "60"
+        - name: PAPERLESS_CONSUMER_RECURSIVE
+          value: "true"
+        - name: PAPERLESS_CONSUMER_SUBDIRS_AS_TAGS
+          value: "true"
+        - name: PAPERLESS_FILENAME_FORMAT
+          value: "{created_year}/{correspondent}/{title}"
+        - name: PAPERLESS_FILENAME_FORMAT_REMOVE_NONE
+          value: "true"
+        - name: PAPERLESS_TASK_WORKERS
+          value: "2"
+        - name: PAPERLESS_THREADS_PER_WORKER
+          value: "2"
+        # Tika and Gotenberg for document processing
+        - name: PAPERLESS_TIKA_ENABLED
+          value: "true"
+        - name: PAPERLESS_TIKA_GOTENBERG_ENDPOINT
+          value: http://localhost:3000
+        - name: PAPERLESS_TIKA_ENDPOINT
+          value: http://localhost:9998
+        ports:
+        - name: http
+          containerPort: 8000
+          protocol: TCP
+        volumeMounts:
+        - name: paperless-data
+          mountPath: /usr/src/paperless/data
+        - name: paperless-media
+          mountPath: /usr/src/paperless/media
+        - name: paperless-export
+          mountPath: /usr/src/paperless/export
+        - name: paperless-consume
+          mountPath: /usr/src/paperless/consume
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "500m"
+          limits:
+            memory: "3Gi"
+            cpu: "2000m"
+        livenessProbe:
+          httpGet:
+            path: /
+            port: http
+          initialDelaySeconds: 120
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /
+            port: http
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 1000
+          runAsGroup: 1000
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: false
+          capabilities:
+            drop:
+            - ALL
+      # Gotenberg for PDF generation
+      - name: gotenberg
+        image: gotenberg/gotenberg:8
+        command:
+        - gotenberg
+        - --chromium-disable-javascript=true
+        - --chromium-allow-list=file:///tmp/.*
+        ports:
+        - containerPort: 3000
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 1001
+          runAsGroup: 1001
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: false
+          capabilities:
+            drop:
+            - ALL
+      # Apache Tika for document parsing
+      - name: tika
+        image: apache/tika:2.9.1
+        ports:
+        - containerPort: 9998
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 1000
+          runAsGroup: 1000
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: false
+          capabilities:
+            drop:
+            - ALL
+      volumes:
+      - name: paperless-data
+        persistentVolumeClaim:
+          claimName: paperless-data
+      - name: paperless-media
+        persistentVolumeClaim:
+          claimName: paperless-media
+      - name: paperless-export
+        persistentVolumeClaim:
+          claimName: paperless-export
+      - name: paperless-consume
+        persistentVolumeClaim:
+          claimName: paperless-consume
+      nodeSelector:
+        kubernetes.io/os: linux

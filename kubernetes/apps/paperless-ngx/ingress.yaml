@@ -1,0 +1,30 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: paperless-ngx
+  namespace: paperless
+  labels:
+    app.kubernetes.io/name: paperless-ngx
+    app.kubernetes.io/part-of: homelab
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    traefik.ingress.kubernetes.io/router.tls: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "100m"
+    nginx.ingress.kubernetes.io/client-body-buffer-size: "100m"
+spec:
+  ingressClassName: traefik
+  tls:
+  - hosts:
+    - paperless.k8s.dttesting.com
+    secretName: paperless-tls
+  rules:
+  - host: paperless.k8s.dttesting.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: paperless-ngx
+            port:
+              number: 8000
