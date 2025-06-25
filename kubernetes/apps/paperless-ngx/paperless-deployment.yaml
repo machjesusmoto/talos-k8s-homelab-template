@@ -140,9 +140,9 @@ spec:
           timeoutSeconds: 5
           failureThreshold: 3
         securityContext:
-          runAsNonRoot: true
-          runAsUser: 1000
-          runAsGroup: 1000
+          runAsNonRoot: false
+          runAsUser: 0
+          runAsGroup: 0
           allowPrivilegeEscalation: false
           readOnlyRootFilesystem: false
           capabilities:
@@ -165,9 +165,9 @@ spec:
             memory: "512Mi"
             cpu: "500m"
         securityContext:
-          runAsNonRoot: true
-          runAsUser: 1001
-          runAsGroup: 1001
+          runAsNonRoot: false
+          runAsUser: 0
+          runAsGroup: 0
           allowPrivilegeEscalation: false
           readOnlyRootFilesystem: false
           capabilities:
@@ -186,9 +186,9 @@ spec:
             memory: "512Mi"
             cpu: "500m"
         securityContext:
-          runAsNonRoot: true
-          runAsUser: 1000
-          runAsGroup: 1000
+          runAsNonRoot: false
+          runAsUser: 0
+          runAsGroup: 0
           allowPrivilegeEscalation: false
           readOnlyRootFilesystem: false
           capabilities:

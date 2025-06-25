@@ -81,11 +81,11 @@ spec:
           timeoutSeconds: 5
           failureThreshold: 3
         securityContext:
-          runAsNonRoot: true
-          runAsUser: 70
-          runAsGroup: 70
+          runAsNonRoot: false
+          runAsUser: 0
+          runAsGroup: 0
           allowPrivilegeEscalation: false
-          readOnlyRootFilesystem: true
+          readOnlyRootFilesystem: false
           capabilities:
             drop:
             - ALL
