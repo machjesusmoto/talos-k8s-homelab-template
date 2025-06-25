@@ -10,7 +10,7 @@ metadata:
 spec:
   accessModes:
     - ReadWriteOnce
-  storageClassName: ""  # Use default (local) storage
+  storageClassName: nfs-apps  # Use NFS storage for application data
   resources:
     requests:
       storage: 1Gi
@@ -27,7 +27,7 @@ metadata:
 spec:
   accessModes:
     - ReadWriteOnce
-  storageClassName: ""  # Use default (local) storage
+  storageClassName: nfs-apps  # Use NFS storage for application data
   resources:
     requests:
       storage: 1Gi

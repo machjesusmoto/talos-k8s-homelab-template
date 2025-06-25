@@ -5,7 +5,6 @@ namespace: rustdesk
 
 resources:
   - namespace.yaml
-  - local-storage.yaml
   - storage.yaml
   - hbbs-deployment.yaml
   - hbbr-deployment.yaml

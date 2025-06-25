@@ -21,8 +21,6 @@ spec:
         app.kubernetes.io/component: relay-server
         app.kubernetes.io/part-of: rustdesk
     spec:
-      nodeSelector:
-        kubernetes.io/hostname: talos-worker-01
       containers:
       - name: hbbr
         image: rustdesk/rustdesk-server:latest
