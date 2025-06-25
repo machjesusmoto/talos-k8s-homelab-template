@@ -8,3 +8,4 @@ resources:
   - portainer.yaml
   - traefik.yaml
   - gluetun.yaml
+  - argocd-image-updater.yaml

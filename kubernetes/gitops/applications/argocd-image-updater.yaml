@@ -1,28 +1,22 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: gluetun
+  name: argocd-image-updater
   namespace: argocd
   finalizers:
     - resources-finalizer.argocd.argoproj.io
   labels:
-    app.kubernetes.io/name: gluetun
+    app.kubernetes.io/name: argocd-image-updater
     app.kubernetes.io/part-of: homelab
-  annotations:
-    # Enable automatic image updates
-    argocd-image-updater.argoproj.io/image-list: "gluetun=qmcgaw/gluetun"
-    argocd-image-updater.argoproj.io/update-strategy: "semver:^v3.0.0"
-    argocd-image-updater.argoproj.io/write-back-method: "git"
-    argocd-image-updater.argoproj.io/git-commit-message: "chore: update gluetun image to {{.NewTag}} 🤖"
 spec:
   project: default
   source:
     repoURL: https://github.com/machjesusmoto/k8s-homelab-migration.git
     targetRevision: main
-    path: kubernetes/apps/gluetun
+    path: kubernetes/apps/argocd-image-updater
   destination:
     server: https://kubernetes.default.svc
-    namespace: gluetun
+    namespace: argocd-image-updater
   syncPolicy:
     automated:
       prune: true

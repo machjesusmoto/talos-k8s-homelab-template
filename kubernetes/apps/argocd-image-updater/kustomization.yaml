@@ -1,0 +1,20 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: argocd-image-updater
+
+resources:
+  - namespace.yaml
+  - rbac.yaml
+  - configmap.yaml
+  - deployment.yaml
+  - service.yaml
+
+labels:
+  - pairs:
+      app.kubernetes.io/name: argocd-image-updater
+      app.kubernetes.io/part-of: homelab
+
+images:
+- name: argoprojlabs/argocd-image-updater
+  newTag: "v0.13.0"

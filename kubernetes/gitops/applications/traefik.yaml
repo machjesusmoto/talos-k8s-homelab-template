@@ -5,6 +5,15 @@ metadata:
   namespace: argocd
   finalizers:
     - resources-finalizer.argocd.argoproj.io
+  labels:
+    app.kubernetes.io/name: traefik
+    app.kubernetes.io/part-of: homelab
+  annotations:
+    # Enable automatic image updates
+    argocd-image-updater.argoproj.io/image-list: "traefik=traefik"
+    argocd-image-updater.argoproj.io/update-strategy: "semver:^v3.0.0"
+    argocd-image-updater.argoproj.io/write-back-method: "git"
+    argocd-image-updater.argoproj.io/git-commit-message: "chore: update traefik image to {{.NewTag}} 🤖"
 spec:
   project: default
   source:
