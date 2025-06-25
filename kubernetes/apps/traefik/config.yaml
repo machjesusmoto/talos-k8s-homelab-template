@@ -1,0 +1,80 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: traefik-config
+  namespace: traefik
+  labels:
+    app.kubernetes.io/name: traefik
+    app.kubernetes.io/part-of: homelab
+data:
+  traefik.yml: |
+    global:
+      checkNewVersion: false
+      sendAnonymousUsage: false
+
+    api:
+      dashboard: true
+      debug: false
+      insecure: true  # Enable for internal dashboard access
+
+    entryPoints:
+      web:
+        address: ":80"
+        http:
+          redirections:
+            entryPoint:
+              to: websecure
+              scheme: https
+      websecure:
+        address: ":443"
+        http:
+          tls:
+            certResolver: letsencrypt
+            domains:
+              - main: "k8s.dttesting.com"
+                sans:
+                  - "*.k8s.dttesting.com"
+      metrics:
+        address: ":8082"
+
+    providers:
+      kubernetesIngress:
+        allowCrossNamespace: true
+        publishedService:
+          enabled: true
+          name: traefik/traefik
+      kubernetesCRD:
+        allowCrossNamespace: true
+
+    certificatesResolvers:
+      letsencrypt:
+        acme:
+          email: admin@dttesting.com
+          storage: /data/acme.json
+          dnsChallenge:
+            provider: cloudflare
+            resolvers:
+              - "1.1.1.1:53"
+              - "1.0.0.1:53"
+
+    metrics:
+      prometheus:
+        buckets:
+          - 0.1
+          - 0.3
+          - 1.2
+          - 5.0
+        entryPoint: metrics
+
+    log:
+      level: INFO
+      format: json
+
+    accessLog:
+      format: json
+
+    ping:
+      entryPoint: web
+
+    serversTransport:
+      insecureSkipVerify: true

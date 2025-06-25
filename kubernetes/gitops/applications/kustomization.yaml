@@ -6,3 +6,4 @@ resources:
   - homer.yaml
   - rustdesk.yaml
   - portainer.yaml
+  - traefik.yaml

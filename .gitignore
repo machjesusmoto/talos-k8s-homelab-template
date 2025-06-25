@@ -89,6 +89,7 @@ admin-password
 
 # Cloudflare API token and DNS-01 secrets
 kubernetes/core/cert-manager/secrets/cloudflare-api-token.yaml
+kubernetes/apps/traefik/cloudflare-secret.yaml
 **/secrets/*api-token*
 **/secrets/*dns-*
 cloudflare-*.yaml
