@@ -10,7 +10,7 @@ metadata:
 spec:
   accessModes:
     - ReadWriteOnce
-  storageClassName: nfs-csi
+  storageClassName: ""  # Use default (local) storage
   resources:
     requests:
       storage: 1Gi
@@ -27,7 +27,7 @@ metadata:
 spec:
   accessModes:
     - ReadWriteOnce
-  storageClassName: nfs-csi
+  storageClassName: ""  # Use default (local) storage
   resources:
     requests:
       storage: 1Gi

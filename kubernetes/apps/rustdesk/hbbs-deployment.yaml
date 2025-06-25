@@ -21,6 +21,8 @@ spec:
         app.kubernetes.io/component: id-server
         app.kubernetes.io/part-of: rustdesk
     spec:
+      nodeSelector:
+        kubernetes.io/hostname: talos-worker-01
       containers:
       - name: hbbs
         image: rustdesk/rustdesk-server:latest
