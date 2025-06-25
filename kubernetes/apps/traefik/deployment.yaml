@@ -25,9 +25,6 @@ spec:
         image: traefik:3.0
         args:
           - --configfile=/config/traefik.yml
-          - --providers.kubernetesingress=true
-          - --providers.kubernetescrd=true
-          - --providers.kubernetescrd.allowCrossNamespace=true
         ports:
         - name: web
           containerPort: 80

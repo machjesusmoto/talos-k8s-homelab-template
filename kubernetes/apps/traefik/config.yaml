@@ -39,12 +39,10 @@ data:
 
     providers:
       kubernetesIngress:
-        allowCrossNamespace: true
         publishedService:
           enabled: true
           name: traefik/traefik
-      kubernetesCRD:
-        allowCrossNamespace: true
+      kubernetesCRD: {}
 
     certificatesResolvers:
       letsencrypt:
