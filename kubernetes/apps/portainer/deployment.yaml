@@ -1,0 +1,70 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: portainer
+  namespace: portainer
+  labels:
+    app.kubernetes.io/name: portainer
+    app.kubernetes.io/component: server
+    app.kubernetes.io/part-of: homelab
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate  # Since we need persistent storage
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: portainer
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: portainer
+        app.kubernetes.io/component: server
+        app.kubernetes.io/part-of: homelab
+    spec:
+      serviceAccountName: portainer-sa-clusteradmin
+      containers:
+      - name: portainer
+        image: portainer/portainer-ce:latest
+        ports:
+        - name: http
+          containerPort: 9000
+          protocol: TCP
+        - name: edge
+          containerPort: 8000
+          protocol: TCP
+        env:
+        - name: PORTAINER_K8S_MODE
+          value: "true"
+        volumeMounts:
+        - name: data
+          mountPath: /data
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 9000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 9000
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: false
+          runAsNonRoot: false
+          runAsUser: 0  # Portainer needs root for Docker socket access
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: portainer-data

@@ -1,0 +1,31 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: portainer
+  namespace: portainer
+  labels:
+    app.kubernetes.io/name: portainer
+    app.kubernetes.io/part-of: homelab
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/ssl-protocols: "TLSv1.2 TLSv1.3"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+spec:
+  ingressClassName: nginx
+  tls:
+  - hosts:
+    - portainer.k8s.dttesting.com
+    secretName: portainer-tls
+  rules:
+  - host: portainer.k8s.dttesting.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: portainer
+            port:
+              number: 80
