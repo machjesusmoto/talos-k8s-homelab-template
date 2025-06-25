@@ -12,3 +12,4 @@ resources:
   - code-server.yaml
   - monitoring.yaml
   - paperless-ngx.yaml
+  - media-management.yaml

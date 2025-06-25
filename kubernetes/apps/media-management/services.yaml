@@ -1,0 +1,99 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: sonarr
+  namespace: media
+  labels:
+    app.kubernetes.io/name: sonarr
+    app.kubernetes.io/component: tv-management
+    app.kubernetes.io/part-of: media-management
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8989
+    targetPort: http
+    protocol: TCP
+    name: http
+  selector:
+    app.kubernetes.io/name: sonarr
+    app.kubernetes.io/component: tv-management
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: radarr
+  namespace: media
+  labels:
+    app.kubernetes.io/name: radarr
+    app.kubernetes.io/component: movie-management
+    app.kubernetes.io/part-of: media-management
+spec:
+  type: ClusterIP
+  ports:
+  - port: 7878
+    targetPort: http
+    protocol: TCP
+    name: http
+  selector:
+    app.kubernetes.io/name: radarr
+    app.kubernetes.io/component: movie-management
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: lidarr
+  namespace: media
+  labels:
+    app.kubernetes.io/name: lidarr
+    app.kubernetes.io/component: music-management
+    app.kubernetes.io/part-of: media-management
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8686
+    targetPort: http
+    protocol: TCP
+    name: http
+  selector:
+    app.kubernetes.io/name: lidarr
+    app.kubernetes.io/component: music-management
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: bazarr
+  namespace: media
+  labels:
+    app.kubernetes.io/name: bazarr
+    app.kubernetes.io/component: subtitle-management
+    app.kubernetes.io/part-of: media-management
+spec:
+  type: ClusterIP
+  ports:
+  - port: 6767
+    targetPort: http
+    protocol: TCP
+    name: http
+  selector:
+    app.kubernetes.io/name: bazarr
+    app.kubernetes.io/component: subtitle-management
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: readarr
+  namespace: media
+  labels:
+    app.kubernetes.io/name: readarr
+    app.kubernetes.io/component: book-management
+    app.kubernetes.io/part-of: media-management
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8787
+    targetPort: http
+    protocol: TCP
+    name: http
+  selector:
+    app.kubernetes.io/name: readarr
+    app.kubernetes.io/component: book-management

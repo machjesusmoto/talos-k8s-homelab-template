@@ -1,0 +1,32 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: media
+
+resources:
+  - namespace.yaml
+  - storage.yaml
+  - sonarr-deployment.yaml
+  - radarr-deployment.yaml
+  - lidarr-deployment.yaml
+  - bazarr-deployment.yaml
+  - readarr-deployment.yaml
+  - services.yaml
+  - ingress.yaml
+
+labels:
+  - pairs:
+      app.kubernetes.io/name: media-management
+      app.kubernetes.io/part-of: homelab
+
+images:
+- name: lscr.io/linuxserver/sonarr
+  newTag: "latest"
+- name: lscr.io/linuxserver/radarr
+  newTag: "latest"
+- name: lscr.io/linuxserver/lidarr
+  newTag: "latest"
+- name: lscr.io/linuxserver/bazarr
+  newTag: "latest"
+- name: lscr.io/linuxserver/readarr
+  newTag: "develop"
