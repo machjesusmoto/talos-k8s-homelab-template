@@ -1,0 +1,57 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: prowlarr
+  namespace: automation
+  labels:
+    app.kubernetes.io/name: prowlarr
+    app.kubernetes.io/part-of: indexers-automation
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    traefik.ingress.kubernetes.io/router.tls: "true"
+spec:
+  ingressClassName: traefik
+  tls:
+  - hosts:
+    - prowlarr.k8s.dttesting.com
+    secretName: prowlarr-tls
+  rules:
+  - host: prowlarr.k8s.dttesting.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: prowlarr
+            port:
+              number: 9696
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: overseerr
+  namespace: automation
+  labels:
+    app.kubernetes.io/name: overseerr
+    app.kubernetes.io/part-of: indexers-automation
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    traefik.ingress.kubernetes.io/router.tls: "true"
+spec:
+  ingressClassName: traefik
+  tls:
+  - hosts:
+    - overseerr.k8s.dttesting.com
+    secretName: overseerr-tls
+  rules:
+  - host: overseerr.k8s.dttesting.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: overseerr
+            port:
+              number: 5055

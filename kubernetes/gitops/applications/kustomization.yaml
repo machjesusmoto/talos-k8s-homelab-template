@@ -14,3 +14,4 @@ resources:
   - paperless-ngx.yaml
   - media-management.yaml
   - download-clients.yaml
+  - indexers-automation.yaml
