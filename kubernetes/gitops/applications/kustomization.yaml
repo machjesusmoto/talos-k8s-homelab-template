@@ -4,3 +4,4 @@ kind: Kustomization
 resources:
   - core-infrastructure.yaml
   - homer.yaml
+  - rustdesk.yaml
