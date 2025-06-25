@@ -8,3 +8,4 @@ resources:
   - https://raw.githubusercontent.com/kubernetes-csi/csi-driver-nfs/v4.9.0/deploy/v4.9.0/csi-nfs-controller.yaml
   - https://raw.githubusercontent.com/kubernetes-csi/csi-driver-nfs/v4.9.0/deploy/v4.9.0/csi-nfs-node.yaml
   - https://raw.githubusercontent.com/kubernetes-csi/csi-driver-nfs/v4.9.0/deploy/v4.9.0/csi-nfs-driverinfo.yaml
+  - storage-classes.yaml
