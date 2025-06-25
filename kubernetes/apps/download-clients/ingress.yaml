@@ -1,0 +1,57 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: qbittorrent
+  namespace: downloads
+  labels:
+    app.kubernetes.io/name: qbittorrent
+    app.kubernetes.io/part-of: download-clients
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    traefik.ingress.kubernetes.io/router.tls: "true"
+spec:
+  ingressClassName: traefik
+  tls:
+  - hosts:
+    - qbittorrent.k8s.dttesting.com
+    secretName: qbittorrent-tls
+  rules:
+  - host: qbittorrent.k8s.dttesting.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: qbittorrent
+            port:
+              number: 8080
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: nzbget
+  namespace: downloads
+  labels:
+    app.kubernetes.io/name: nzbget
+    app.kubernetes.io/part-of: download-clients
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    traefik.ingress.kubernetes.io/router.tls: "true"
+spec:
+  ingressClassName: traefik
+  tls:
+  - hosts:
+    - nzbget.k8s.dttesting.com
+    secretName: nzbget-tls
+  rules:
+  - host: nzbget.k8s.dttesting.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: nzbget
+            port:
+              number: 6789

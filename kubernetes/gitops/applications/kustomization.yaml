@@ -13,3 +13,4 @@ resources:
   - monitoring.yaml
   - paperless-ngx.yaml
   - media-management.yaml
+  - download-clients.yaml

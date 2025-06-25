@@ -1,0 +1,103 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nzbget
+  namespace: downloads
+  labels:
+    app.kubernetes.io/name: nzbget
+    app.kubernetes.io/component: usenet-client
+    app.kubernetes.io/part-of: download-clients
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: nzbget
+      app.kubernetes.io/component: usenet-client
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: nzbget
+        app.kubernetes.io/component: usenet-client
+        app.kubernetes.io/part-of: download-clients
+      annotations:
+        gluetun.io/enabled: "true"
+    spec:
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
+        runAsUser: 0
+        runAsGroup: 0
+        fsGroup: 1000
+      containers:
+      - name: nzbget
+        image: lscr.io/linuxserver/nzbget:latest
+        env:
+        - name: PUID
+          value: "1000"
+        - name: PGID
+          value: "1000"
+        - name: TZ
+          value: "America/New_York"
+        - name: UMASK
+          value: "022"
+        - name: NZBGET_USER
+          value: "admin"
+        - name: NZBGET_PASS
+          value: "admin123!"
+        ports:
+        - name: webui
+          containerPort: 6789
+          protocol: TCP
+        volumeMounts:
+        - name: nzbget-config
+          mountPath: /config
+        - name: downloads-storage
+          mountPath: /downloads
+        - name: incomplete-downloads
+          mountPath: /intermediate
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /
+            port: webui
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /
+            port: webui
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        securityContext:
+          runAsNonRoot: false
+          runAsUser: 0
+          runAsGroup: 0
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: false
+          capabilities:
+            drop:
+            - ALL
+      volumes:
+      - name: nzbget-config
+        persistentVolumeClaim:
+          claimName: nzbget-config
+      - name: downloads-storage
+        persistentVolumeClaim:
+          claimName: downloads-storage
+      - name: incomplete-downloads
+        persistentVolumeClaim:
+          claimName: incomplete-downloads
+      nodeSelector:
+        kubernetes.io/os: linux

@@ -1,0 +1,23 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: downloads
+
+resources:
+  - namespace.yaml
+  - storage.yaml
+  - qbittorrent-deployment.yaml
+  - nzbget-deployment.yaml
+  - services.yaml
+  - ingress.yaml
+
+labels:
+  - pairs:
+      app.kubernetes.io/name: download-clients
+      app.kubernetes.io/part-of: homelab
+
+images:
+- name: lscr.io/linuxserver/qbittorrent
+  newTag: "latest"
+- name: lscr.io/linuxserver/nzbget
+  newTag: "latest"

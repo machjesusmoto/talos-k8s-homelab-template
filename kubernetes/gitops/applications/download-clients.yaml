@@ -1,0 +1,32 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: download-clients
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+  labels:
+    app.kubernetes.io/name: download-clients
+    app.kubernetes.io/part-of: homelab
+  annotations:
+    # Enable automatic image updates
+    argocd-image-updater.argoproj.io/image-list: "qbittorrent=lscr.io/linuxserver/qbittorrent,nzbget=lscr.io/linuxserver/nzbget"
+    argocd-image-updater.argoproj.io/update-strategy: "latest,latest"
+    argocd-image-updater.argoproj.io/write-back-method: "git"
+    argocd-image-updater.argoproj.io/git-commit-message: "chore: update download clients images ⬇️"
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/machjesusmoto/k8s-homelab-migration.git
+    targetRevision: main
+    path: kubernetes/apps/download-clients
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: downloads
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+    - CreateNamespace=true
+    - ServerSideApply=true
