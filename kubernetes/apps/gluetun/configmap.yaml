@@ -1,0 +1,34 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gluetun-config
+  namespace: gluetun
+  labels:
+    app.kubernetes.io/name: gluetun
+    app.kubernetes.io/part-of: homelab
+data:
+  # VPN Provider (examples: nordvpn, expressvpn, surfshark, pia, mullvad, etc.)
+  VPN_SERVICE_PROVIDER: "mullvad"
+  
+  # VPN Type (wireguard or openvpn)
+  VPN_TYPE: "wireguard"
+  
+  # Firewall settings
+  FIREWALL: "on"
+  FIREWALL_VPN_INPUT_PORTS: "51820"
+  
+  # DNS settings  
+  DOT: "on"
+  DOT_PROVIDERS: "cloudflare"
+  
+  # Health check
+  HEALTH_SERVER_ADDRESS: ":9999"
+  
+  # Logging
+  LOG_LEVEL: "info"
+  
+  # Time zone
+  TZ: "America/Los_Angeles"
+  
+  # Kill switch - blocks traffic if VPN disconnects
+  FIREWALL_OUTBOUND_SUBNETS: "192.168.1.0/24,10.0.0.0/8,172.16.0.0/12"

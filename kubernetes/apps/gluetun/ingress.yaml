@@ -1,0 +1,29 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: gluetun-health
+  namespace: gluetun
+  labels:
+    app.kubernetes.io/name: gluetun
+    app.kubernetes.io/part-of: homelab
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    traefik.ingress.kubernetes.io/router.tls: "true"
+    traefik.ingress.kubernetes.io/router.middlewares: gluetun-auth@kubernetescrd
+spec:
+  ingressClassName: traefik
+  tls:
+  - hosts:
+    - gluetun.k8s.dttesting.com
+    secretName: gluetun-tls
+  rules:
+  - host: gluetun.k8s.dttesting.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: gluetun
+            port:
+              number: 9999

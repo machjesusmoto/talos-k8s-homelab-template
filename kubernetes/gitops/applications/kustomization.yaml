@@ -7,3 +7,4 @@ resources:
   - rustdesk.yaml
   - portainer.yaml
   - traefik.yaml
+  - gluetun.yaml

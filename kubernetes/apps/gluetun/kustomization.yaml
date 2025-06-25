@@ -1,0 +1,21 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: gluetun
+
+resources:
+  - namespace.yaml
+  - configmap.yaml
+  - storage.yaml
+  - deployment.yaml
+  - service.yaml
+  - ingress.yaml
+
+labels:
+  - pairs:
+      app.kubernetes.io/name: gluetun
+      app.kubernetes.io/part-of: homelab
+
+images:
+- name: qmcgaw/gluetun
+  newTag: "v3.38.0"

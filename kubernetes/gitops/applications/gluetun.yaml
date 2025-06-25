@@ -1,0 +1,26 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: gluetun
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+  labels:
+    app.kubernetes.io/name: gluetun
+    app.kubernetes.io/part-of: homelab
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/machjesusmoto/k8s-homelab-migration.git
+    targetRevision: main
+    path: kubernetes/apps/gluetun
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: gluetun
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+    - CreateNamespace=true
+    - ServerSideApply=true

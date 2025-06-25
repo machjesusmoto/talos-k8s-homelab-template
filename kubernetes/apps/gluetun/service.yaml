@@ -1,0 +1,45 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: gluetun
+  namespace: gluetun
+  labels:
+    app.kubernetes.io/name: gluetun
+    app.kubernetes.io/component: vpn
+    app.kubernetes.io/part-of: homelab
+spec:
+  type: ClusterIP
+  ports:
+  - name: health
+    port: 9999
+    targetPort: health
+    protocol: TCP
+  - name: shadowsocks
+    port: 8388
+    targetPort: shadowsocks
+    protocol: TCP
+  - name: http-proxy
+    port: 8888
+    targetPort: http-proxy
+    protocol: TCP
+  selector:
+    app.kubernetes.io/name: gluetun
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: gluetun-health
+  namespace: gluetun
+  labels:
+    app.kubernetes.io/name: gluetun
+    app.kubernetes.io/component: vpn-health
+    app.kubernetes.io/part-of: homelab
+spec:
+  type: LoadBalancer
+  ports:
+  - name: health
+    port: 9999
+    targetPort: health
+    protocol: TCP
+  selector:
+    app.kubernetes.io/name: gluetun
