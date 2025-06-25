@@ -5,7 +5,7 @@ namespace: notifications
 
 resources:
   - namespace.yaml
-  - secrets.yaml
+  - notifiarr-secrets.yaml
   - storage.yaml
   - notifiarr-deployment.yaml
   - service.yaml
