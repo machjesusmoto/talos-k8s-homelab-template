@@ -4,7 +4,6 @@ kind: Kustomization
 namespace: monitoring
 
 resources:
-  - namespace.yaml
   - prometheus-config.yaml
   - prometheus-rbac.yaml
   - storage.yaml
