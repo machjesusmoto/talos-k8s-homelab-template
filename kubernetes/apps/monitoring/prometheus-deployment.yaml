@@ -22,6 +22,9 @@ spec:
         app.kubernetes.io/part-of: homelab
     spec:
       serviceAccountName: prometheus
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
       containers:
       - name: prometheus
         image: prom/prometheus:v2.50.1

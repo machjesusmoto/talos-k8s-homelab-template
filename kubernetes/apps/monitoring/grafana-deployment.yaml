@@ -21,6 +21,9 @@ spec:
         app.kubernetes.io/component: visualization
         app.kubernetes.io/part-of: homelab
     spec:
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
       containers:
       - name: grafana
         image: grafana/grafana:10.4.1
