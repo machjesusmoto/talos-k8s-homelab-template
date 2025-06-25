@@ -1,0 +1,119 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: code-server
+  namespace: code-server
+  labels:
+    app.kubernetes.io/name: code-server
+    app.kubernetes.io/component: ide
+    app.kubernetes.io/part-of: homelab
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate  # Important for PVC access
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: code-server
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: code-server
+        app.kubernetes.io/component: ide
+        app.kubernetes.io/part-of: homelab
+    spec:
+      containers:
+      - name: code-server
+        image: codercom/code-server:4.23.1
+        args:
+        - --config=/home/coder/.config/code-server/config.yaml
+        - --user-data-dir=/home/coder/.local/share/code-server
+        - --extensions-dir=/home/coder/.local/share/code-server/extensions
+        - /home/coder/projects
+        env:
+        - name: PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: code-server-auth
+              key: PASSWORD
+        - name: TZ
+          value: "America/Los_Angeles"
+        - name: DOCKER_HOST
+          value: "unix:///var/run/docker.sock"
+        ports:
+        - name: http
+          containerPort: 8080
+          protocol: TCP
+        volumeMounts:
+        - name: data
+          mountPath: /home/coder/.local/share/code-server
+        - name: projects
+          mountPath: /home/coder/projects
+        - name: config
+          mountPath: /home/coder/.config/code-server/config.yaml
+          subPath: config.yaml
+          readOnly: true
+        - name: vscode-settings
+          mountPath: /home/coder/.local/share/code-server/User/settings.json
+          subPath: settings.json
+          readOnly: true
+        - name: docker-sock
+          mountPath: /var/run/docker.sock
+          readOnly: true
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "200m"
+          limits:
+            memory: "2Gi"
+            cpu: "2000m"
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: http
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: http
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        securityContext:
+          runAsUser: 1000
+          runAsGroup: 1000
+          fsGroup: 1000
+          runAsNonRoot: true
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: false
+          capabilities:
+            drop:
+            - ALL
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: code-server-data
+      - name: projects
+        persistentVolumeClaim:
+          claimName: code-server-projects
+      - name: config
+        configMap:
+          name: code-server-config
+          items:
+          - key: config.yaml
+            path: config.yaml
+      - name: vscode-settings
+        configMap:
+          name: code-server-config
+          items:
+          - key: settings.json
+            path: settings.json
+      - name: docker-sock
+        hostPath:
+          path: /var/run/docker.sock
+          type: Socket
+      nodeSelector:
+        kubernetes.io/os: linux
