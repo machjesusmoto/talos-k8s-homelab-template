@@ -1,0 +1,107 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grocy
+  namespace: household
+  labels:
+    app.kubernetes.io/name: grocy
+    app.kubernetes.io/component: household-management
+    app.kubernetes.io/part-of: homelab
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: grocy
+      app.kubernetes.io/component: household-management
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: grocy
+        app.kubernetes.io/component: household-management
+        app.kubernetes.io/part-of: homelab
+    spec:
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
+        runAsUser: 0
+        runAsGroup: 0
+        fsGroup: 1000
+      containers:
+      - name: grocy
+        image: lscr.io/linuxserver/grocy:latest
+        env:
+        - name: PUID
+          value: "1000"
+        - name: PGID
+          value: "1000"
+        - name: TZ
+          value: "America/New_York"
+        - name: UMASK
+          value: "022"
+        # Grocy configuration
+        - name: GROCY_CULTURE
+          value: "en_US"
+        - name: GROCY_CURRENCY
+          value: "USD"
+        - name: GROCY_ENERGY_UNIT
+          value: "kcal"
+        - name: GROCY_DEFAULT_LOCALE
+          value: "en"
+        # Security settings
+        - name: GROCY_AUTH_CLASS
+          value: "Grocy\\Middleware\\DefaultAuthMiddleware"
+        - name: MAX_UPLOAD
+          value: "50M"
+        - name: PHP_MAX_FILE_UPLOAD
+          value: "200"
+        - name: PHP_MAX_POST
+          value: "100M"
+        - name: PHP_MEMORY_LIMIT
+          value: "512M"
+        ports:
+        - name: http
+          containerPort: 80
+          protocol: TCP
+        volumeMounts:
+        - name: grocy-config
+          mountPath: /config
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /
+            port: http
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /
+            port: http
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        securityContext:
+          runAsNonRoot: false
+          runAsUser: 0
+          runAsGroup: 0
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: false
+          capabilities:
+            drop:
+            - ALL
+      volumes:
+      - name: grocy-config
+        persistentVolumeClaim:
+          claimName: grocy-config
+      nodeSelector:
+        kubernetes.io/os: linux

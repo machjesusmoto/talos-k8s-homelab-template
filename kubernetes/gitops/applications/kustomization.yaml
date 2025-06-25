@@ -16,3 +16,4 @@ resources:
   - download-clients.yaml
   - indexers-automation.yaml
   - notifiarr.yaml
+  - grocy.yaml

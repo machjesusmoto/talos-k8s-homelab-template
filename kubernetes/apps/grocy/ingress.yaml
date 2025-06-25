@@ -1,0 +1,31 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: grocy
+  namespace: household
+  labels:
+    app.kubernetes.io/name: grocy
+    app.kubernetes.io/part-of: homelab
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    traefik.ingress.kubernetes.io/router.tls: "true"
+    # Increase client body size for recipe images and file uploads
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+    nginx.ingress.kubernetes.io/client-body-buffer-size: "50m"
+spec:
+  ingressClassName: traefik
+  tls:
+  - hosts:
+    - grocy.k8s.dttesting.com
+    secretName: grocy-tls
+  rules:
+  - host: grocy.k8s.dttesting.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: grocy
+            port:
+              number: 80

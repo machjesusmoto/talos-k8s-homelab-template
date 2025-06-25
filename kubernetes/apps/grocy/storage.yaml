@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: grocy-config
+  namespace: household
+  labels:
+    app.kubernetes.io/name: grocy
+    app.kubernetes.io/component: config
+    app.kubernetes.io/part-of: homelab
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: nfs-apps
+  resources:
+    requests:
+      storage: 5Gi

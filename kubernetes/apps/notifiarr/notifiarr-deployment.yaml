@@ -164,7 +164,7 @@ spec:
         
         livenessProbe:
           httpGet:
-            path: /api/v1/status
+            path: /
             port: http
           initialDelaySeconds: 30
           periodSeconds: 30
@@ -173,7 +173,7 @@ spec:
         
         readinessProbe:
           httpGet:
-            path: /api/v1/status
+            path: /
             port: http
           initialDelaySeconds: 10
           periodSeconds: 10
