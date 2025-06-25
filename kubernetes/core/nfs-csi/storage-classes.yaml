@@ -45,7 +45,7 @@ metadata:
 provisioner: nfs.csi.k8s.io
 parameters:
   server: stor1-truenasprod1.dttesting.com
-  share: /mnt/rz3_storage/primary_dataset/media/k8s-apps
+  share: /mnt/rz3_storage/primary_dataset/media
 reclaimPolicy: Retain
 volumeBindingMode: Immediate
 mountOptions:
