@@ -109,6 +109,91 @@ kubernetes/core/cert-manager/test-certificate.yaml
 *-prod.yaml
 *production*
 
+# Application secrets (override with specific allow patterns)
+**/secrets.yaml
+kubernetes/apps/*/secrets.yaml
+kubernetes/apps/*secrets.yaml
+
+# Database and application credentials
+postgres-secret*
+redis-secret*
+mysql-secret*
+mariadb-secret*
+
+# VPN and security configurations with credentials
+vpn-secret*
+**/gluetun/*secret*
+wireguard-*
+openvpn-*
+
+# Media management application API keys and passwords
+sonarr-*secret*
+radarr-*secret* 
+lidarr-*secret*
+bazarr-*secret*
+readarr-*secret*
+overseerr-*secret*
+prowlarr-*secret*
+
+# Download client passwords and configurations
+qbittorrent-*secret*
+nzbget-*secret*
+transmission-*secret*
+deluge-*secret*
+
+# Notification service credentials
+notifiarr-*secret*
+discord-*secret*
+telegram-*secret*
+slack-*secret*
+pushover-*secret*
+
+# Document management secrets
+paperless-*secret*
+**/paperless-ngx/*secret*
+
+# Household management secrets
+grocy-*secret*
+**/grocy/*secret*
+
+# Monitoring and management credentials
+grafana-*secret*
+prometheus-*secret*
+portainer-*secret*
+
+# Backup and sync credentials
+rsync-*secret*
+backup-*secret*
+sync-*secret*
+
+# Media server credentials (if added)
+plex-*secret*
+jellyfin-*secret*
+emby-*secret*
+tautulli-*secret*
+
 # Email patterns (optional - remove if legitimate)
 # *@*.com
 # *@*.org
+
+# Application configuration overrides
+kubernetes/apps/*/config-override.yaml
+kubernetes/apps/*/local-config.yaml
+*-override.yaml
+
+# Temporary ArgoCD configurations
+kubernetes/gitops/applications/*-temp.yaml
+kubernetes/gitops/applications/staging-*
+
+# Performance and debugging outputs
+kubernetes/logs/
+benchmarks/
+performance-*
+debug-*
+
+# Local development and testing
+dev/
+test-deployments/
+sandbox/
+experimental/
+kubernetes/apps/test-*

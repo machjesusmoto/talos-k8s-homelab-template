@@ -1,8 +1,17 @@
-# Initial Setup - Talos Kubernetes Cluster
+# Initial Setup - Ultimate Life Automation Platform
 
 ## Overview
 
-This guide walks through the complete deployment of a Talos Linux Kubernetes cluster with GitOps management via ArgoCD. The deployment is fully automated with cross-platform scripts.
+This guide walks through the complete deployment of a Talos Linux Kubernetes cluster that hosts the **Ultimate Life Automation Platform** - a comprehensive ecosystem managing entertainment, documents, household operations, and system monitoring. The deployment is fully automated with cross-platform scripts and GitOps management via ArgoCD.
+
+## Platform Capabilities
+
+Your homelab will include:
+- **25+ Applications** across entertainment, household, and system management
+- **25TB+ Storage** for media, documents, and household data
+- **Complete Automation** from content requests to household inventory
+- **Enterprise Security** with VPN protection and encrypted communications
+- **Professional Monitoring** with metrics, alerts, and performance tracking
 
 ## Prerequisites
 
@@ -56,6 +65,9 @@ kubectl apply -k kubernetes/core/
 # 7. Deploy ArgoCD for GitOps
 kubectl apply -k kubernetes/gitops/argocd/
 ./scripts/configure-argocd.sh
+
+# 8. Deploy all applications via GitOps
+kubectl apply -k kubernetes/gitops/applications/
 ```
 
 #### Windows PowerShell
@@ -81,6 +93,9 @@ kubectl apply -k kubernetes/core/
 # 7. Deploy ArgoCD for GitOps
 kubectl apply -k kubernetes/gitops/argocd/
 .\scripts\configure-argocd.ps1
+
+# 8. Deploy all applications via GitOps
+kubectl apply -k kubernetes/gitops/applications/
 ```
 
 ## Manual Deployment Steps
@@ -181,12 +196,61 @@ The VIP (192.168.1.240) will be managed by Talos for HA access to the Kubernetes
 
 This is configured in the control plane patches (see `talos/patches/controlplane.yaml`).
 
+## Deployed Applications
+
+After successful deployment, your platform includes:
+
+### 🏗️ **Infrastructure & Core (5 services)**
+- **Talos Kubernetes** - 5-node HA cluster on Proxmox
+- **NFS Storage** - 25TB+ distributed storage infrastructure
+- **Traefik** - Reverse proxy with automatic SSL certificates
+- **ArgoCD** - GitOps continuous deployment
+- **ArgoCD Image Updater** - Automated container updates
+
+### 🛡️ **Security & Privacy (2 services)**
+- **Gluetun VPN** - Per-container VPN protection
+- **Let's Encrypt** - Automatic SSL certificate management
+
+### ⚡ **Management & Monitoring (4 services)**
+- **Portainer** - Container management at portainer.k8s.dttesting.com
+- **Prometheus** - Metrics collection at prometheus.k8s.dttesting.com
+- **Grafana** - Monitoring dashboards at grafana.k8s.dttesting.com
+- **Homer** - Service dashboard at homer.k8s.dttesting.com
+
+### 📄 **Document Management (3 services)**
+- **Paperless-ngx** - OCR document management at paperless.k8s.dttesting.com
+- **PostgreSQL** - Database for document metadata
+- **Redis** - Caching and task queue
+
+### 🎬 **Media Automation (5 services)**
+- **Sonarr** - TV show management at sonarr.k8s.dttesting.com
+- **Radarr** - Movie management at radarr.k8s.dttesting.com
+- **Lidarr** - Music management at lidarr.k8s.dttesting.com
+- **Bazarr** - Subtitle management at bazarr.k8s.dttesting.com
+- **Readarr** - Book management at readarr.k8s.dttesting.com
+
+### ⬇️ **Download Automation (2 services)**
+- **qBittorrent** - Torrent client at qbittorrent.k8s.dttesting.com
+- **NZBget** - Usenet client at nzbget.k8s.dttesting.com
+
+### 🔍 **Discovery & Requests (3 services)**
+- **Prowlarr** - Indexer management at prowlarr.k8s.dttesting.com
+- **Overseerr** - Content requests at overseerr.k8s.dttesting.com
+- **FlareSolverr** - Cloudflare bypass service
+
+### 🔔 **Notifications & Development (2 services)**
+- **Notifiarr** - Notification hub at notifiarr.k8s.dttesting.com
+- **Code-Server** - VS Code development at code-server.k8s.dttesting.com
+
+### 🏠 **Household Management (1 service)**
+- **Grocy** - Household ERP system at grocy.k8s.dttesting.com
+
 ## Next Steps
 
-Once the cluster is running:
-1. [Deploy Core Infrastructure](02-core-infrastructure.md)
-2. [Set up GitOps](03-gitops-setup.md)
-3. [Deploy Applications](04-deploy-applications.md)
+Once the cluster is running, proceed to configuration:
+1. [Configure Applications](docs/post-deployment-config.md)
+2. [Set up Notifications](docs/notification-setup.md)
+3. [Troubleshooting Guide](docs/03-troubleshooting.md)
 
 ## Troubleshooting
 
