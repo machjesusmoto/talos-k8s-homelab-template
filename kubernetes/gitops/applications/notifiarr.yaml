@@ -1,0 +1,32 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: notifiarr
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+  labels:
+    app.kubernetes.io/name: notifiarr
+    app.kubernetes.io/part-of: homelab
+  annotations:
+    # Enable automatic image updates
+    argocd-image-updater.argoproj.io/image-list: "notifiarr=golift/notifiarr"
+    argocd-image-updater.argoproj.io/update-strategy: "latest"
+    argocd-image-updater.argoproj.io/write-back-method: "git"
+    argocd-image-updater.argoproj.io/git-commit-message: "chore: update notifiarr image 🔔"
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/machjesusmoto/k8s-homelab-migration.git
+    targetRevision: main
+    path: kubernetes/apps/notifiarr
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: notifications
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+    - CreateNamespace=true
+    - ServerSideApply=true
