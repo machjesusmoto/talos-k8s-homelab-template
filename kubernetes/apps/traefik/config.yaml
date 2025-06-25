@@ -38,10 +38,7 @@ data:
         address: ":8082"
 
     providers:
-      kubernetesIngress:
-        publishedService:
-          enabled: true
-          name: traefik/traefik
+      kubernetesIngress: {}
       kubernetesCRD: {}
 
     certificatesResolvers:

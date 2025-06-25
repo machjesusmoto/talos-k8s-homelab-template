@@ -213,6 +213,115 @@ dial tcp 10.96.0.1:443: i/o timeout
    ~/bin/argocd app sync core-infrastructure
    ```
 
+### PVC Storage Class Immutable Error
+
+**Symptom**: 
+```
+PersistentVolumeClaim "app-data" is invalid: spec: Forbidden: spec is immutable after creation except resources.requests and volumeAttributesClassName for bound claims
+core.PersistentVolumeClaimSpec{
+  StorageClassName: &"",
++ StorageClassName: &"nfs-apps",
+}
+```
+
+**Cause**: Application PVCs were created with different storage class (often empty `""`) but configuration now specifies a different storage class
+
+**Root Cause**: Kubernetes doesn't allow changing the storage class of existing PVCs - this field is immutable
+
+**Solution**:
+1. **Delete the application deployments** to release PVC locks:
+   ```bash
+   kubectl delete deployment <app-name> -n <namespace>
+   ```
+2. **Delete the problematic PVCs**:
+   ```bash
+   kubectl delete pvc <pvc-name> -n <namespace>
+   ```
+3. **Wait for PVCs and PVs to fully terminate**:
+   ```bash
+   kubectl get pvc -n <namespace>
+   kubectl get pv | grep <namespace>
+   ```
+4. **Trigger application sync** to recreate with correct storage class:
+   ```bash
+   ~/bin/argocd app sync <app-name>
+   ```
+
+**Example - RustDesk Storage Class Fix**:
+```bash
+# Delete deployments to release PVCs
+kubectl delete deployment rustdesk-hbbr rustdesk-hbbs -n rustdesk
+
+# Delete stuck PVCs
+kubectl delete pvc rustdesk-hbbr-data rustdesk-hbbs-data -n rustdesk
+
+# Verify cleanup
+kubectl get pvc -n rustdesk
+kubectl get pv | grep rustdesk
+
+# Sync to recreate with correct storage class
+~/bin/argocd app sync rustdesk
+```
+
+**Prevention**:
+- Always specify the correct storage class in initial deployment
+- Use consistent storage classes across all applications
+- Test storage configurations before production deployment
+
+### ArgoCD Authentication and Password Issues
+
+**Symptom**: Unable to login to ArgoCD web UI or password changes don't persist
+
+**Cause**: Authentication system issues due to incomplete or corrupted `argocd-secret` configuration
+
+**Root Cause Analysis**:
+- ArgoCD requires both `argocd-secret` (with `server.secretkey`) and `argocd-initial-admin-secret` for proper authentication
+- The dex-server component crashes if `argocd-secret` is missing the required `server.secretkey`
+- Manually setting password hashes without proper secret structure can cause authentication failures
+- Component synchronization issues between server, dex-server, and repo-server
+
+**Complete Password Reset Solution**:
+
+1. **Delete all authentication secrets**:
+   ```bash
+   kubectl delete secret argocd-initial-admin-secret -n argocd
+   kubectl delete secret argocd-secret -n argocd
+   ```
+
+2. **Create properly structured argocd-secret**:
+   ```bash
+   kubectl create secret generic argocd-secret -n argocd \
+     --from-literal=server.secretkey=$(openssl rand -base64 32)
+   ```
+
+3. **Restart all ArgoCD components**:
+   ```bash
+   kubectl rollout restart deployment argocd-server -n argocd
+   kubectl rollout restart deployment argocd-dex-server -n argocd
+   kubectl rollout restart deployment argocd-repo-server -n argocd
+   ```
+
+4. **Wait for components to be ready**:
+   ```bash
+   kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=argocd-server -n argocd --timeout=120s
+   ```
+
+5. **Get new initial admin password**:
+   ```bash
+   kubectl get secret argocd-initial-admin-secret -n argocd -o jsonpath="{.data.password}" | base64 -d
+   ```
+
+6. **Login and change password**:
+   - Access ArgoCD UI at http://192.168.1.210
+   - Username: `admin`
+   - Password: (output from step 5)
+   - Change password through UI: User Info → Update Password
+
+**Prevention**:
+- Always ensure `argocd-secret` contains `server.secretkey` when manually managing secrets
+- Use ArgoCD UI for password changes rather than direct secret manipulation
+- Monitor dex-server pod status when making authentication changes
+
 ## Certificate Management
 
 ### cert-manager Webhook Errors
@@ -287,6 +396,50 @@ Error: 6003: Invalid request headers<- 6111: Invalid format for Authorization he
    dig _acme-challenge.your-domain.com TXT
    ```
 4. Wait for propagation (can take up to 10 minutes)
+
+### DNS-01 Challenge with Split-Brain DNS (Common Homelab Issue)
+
+**Symptom**: Challenge shows "DNS record not yet propagated" despite correct Cloudflare configuration
+
+**Cause**: Internal DNS (Unbound, pfSense, etc.) intercepting queries for your domain instead of forwarding to Cloudflare
+
+**Solution**:
+1. **Identify the issue**: Your domain (e.g., `dttesting.com`) is configured as an internal domain, causing DNS queries to be resolved locally instead of via Cloudflare
+2. **Configure DNS forwarding** for your subdomain to Cloudflare:
+   
+   **For Unbound DNS**:
+   ```
+   # Add to Unbound configuration
+   forward-zone:
+       name: "k8s.dttesting.com"
+       forward-addr: 1.1.1.1
+       forward-addr: 1.0.0.1
+   ```
+   
+   **For pfSense DNS Resolver**:
+   - Navigate to Services > DNS Resolver > General Settings
+   - Add Domain Override: 
+     - Domain: `k8s.dttesting.com`
+     - IP: `1.1.1.1`
+   
+3. **Test DNS resolution after configuration**:
+   ```bash
+   # Test from inside your network
+   dig _acme-challenge.app.k8s.dttesting.com TXT
+   # Should return Cloudflare result, not NXDOMAIN
+   ```
+
+4. **Restart certificate process**:
+   ```bash
+   # Delete existing certificate to force new challenge
+   kubectl delete certificate <cert-name> -n <namespace>
+   # Certificate will be automatically recreated by ingress
+   ```
+
+**Alternative Solutions**:
+- Use a different subdomain that's not managed internally
+- Configure your internal DNS to not override the subdomain
+- Use HTTP-01 challenge instead (requires port 80 external access)
 
 ### Let's Encrypt Rate Limits
 

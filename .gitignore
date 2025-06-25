@@ -97,3 +97,18 @@ dns-*.yaml
 
 # Test certificates (temporary testing files)
 kubernetes/core/cert-manager/test-certificate.yaml
+
+# Additional sensitive patterns
+*-token*
+*api-key*
+*credential*
+*.secret
+*password*
+
+# Environment-specific configs that might contain secrets
+*-prod.yaml
+*production*
+
+# Email patterns (optional - remove if legitimate)
+# *@*.com
+# *@*.org
