@@ -1,0 +1,32 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: monitoring
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+  labels:
+    app.kubernetes.io/name: monitoring
+    app.kubernetes.io/part-of: homelab
+  annotations:
+    # Enable automatic image updates
+    argocd-image-updater.argoproj.io/image-list: "prometheus=prom/prometheus,grafana=grafana/grafana"
+    argocd-image-updater.argoproj.io/update-strategy: "semver:^v2.0.0,semver:^10.0.0"
+    argocd-image-updater.argoproj.io/write-back-method: "git"
+    argocd-image-updater.argoproj.io/git-commit-message: "chore: update monitoring stack images 📊"
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/machjesusmoto/k8s-homelab-migration.git
+    targetRevision: main
+    path: kubernetes/apps/monitoring
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: monitoring
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+    - CreateNamespace=true
+    - ServerSideApply=true

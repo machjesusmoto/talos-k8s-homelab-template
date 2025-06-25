@@ -10,3 +10,4 @@ resources:
   - gluetun.yaml
   - argocd-image-updater.yaml
   - code-server.yaml
+  - monitoring.yaml

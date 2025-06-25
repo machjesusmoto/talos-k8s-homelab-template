@@ -1,0 +1,27 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: monitoring
+
+resources:
+  - namespace.yaml
+  - prometheus-config.yaml
+  - prometheus-rbac.yaml
+  - storage.yaml
+  - prometheus-deployment.yaml
+  - grafana-config.yaml
+  - grafana-dashboards.yaml
+  - grafana-deployment.yaml
+  - services.yaml
+  - ingress.yaml
+
+labels:
+  - pairs:
+      app.kubernetes.io/name: monitoring
+      app.kubernetes.io/part-of: homelab
+
+images:
+- name: prom/prometheus
+  newTag: "v2.50.1"
+- name: grafana/grafana
+  newTag: "10.4.1"

@@ -1,0 +1,31 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: prometheus-data
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: prometheus
+    app.kubernetes.io/part-of: homelab
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: nfs-apps
+  resources:
+    requests:
+      storage: 50Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: grafana-data
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: grafana
+    app.kubernetes.io/part-of: homelab
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: nfs-apps
+  resources:
+    requests:
+      storage: 10Gi
