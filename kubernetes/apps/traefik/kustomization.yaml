@@ -9,7 +9,6 @@ resources:
   # Download official Traefik CRDs
   - https://raw.githubusercontent.com/traefik/traefik/v3.0/docs/content/reference/dynamic-configuration/kubernetes-crd-definition-v1.yml
   - config.yaml
-  - cloudflare-secret.yaml
   - storage.yaml
   - deployment.yaml
   - services.yaml
