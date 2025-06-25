@@ -22,7 +22,7 @@ spec:
       serviceAccountName: argocd-image-updater
       containers:
       - name: argocd-image-updater
-        image: argoprojlabs/argocd-image-updater:v0.12.3
+        image: argoprojlabs/argocd-image-updater:latest
         command:
         - /usr/local/bin/argocd-image-updater
         - run

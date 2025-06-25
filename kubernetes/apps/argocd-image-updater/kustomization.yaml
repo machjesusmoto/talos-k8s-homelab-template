@@ -17,4 +17,4 @@ labels:
 
 images:
 - name: argoprojlabs/argocd-image-updater
-  newTag: "v0.12.3"
+  newTag: "latest"
