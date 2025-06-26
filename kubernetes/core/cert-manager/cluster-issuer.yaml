@@ -14,3 +14,7 @@ spec:
           apiTokenSecretRef:
             name: cloudflare-api-token-secret
             key: api-token
+      selector:
+        dnsNames:
+        - '*.k8s.dttesting.com'
+        - '*.homelab-k8s.dttesting.com'

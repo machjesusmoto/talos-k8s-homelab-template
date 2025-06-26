@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gluetun-config
+  namespace: gluetun
+  labels:
+    app.kubernetes.io/name: gluetun
+    app.kubernetes.io/component: vpn
+    app.kubernetes.io/part-of: homelab
+data:
+  # DNS Configuration
+  DOT: "on"
+  DOT_PROVIDERS: "cloudflare"
+  
+  # Firewall Configuration
+  FIREWALL: "on"
+  FIREWALL_OUTBOUND_SUBNETS: "192.168.1.0/24,10.0.0.0/8,172.16.0.0/12"
+  
+  # Health Check
+  HEALTH_SERVER_ADDRESS: ":9999"
+  
+  # Logging
+  LOG_LEVEL: "info"

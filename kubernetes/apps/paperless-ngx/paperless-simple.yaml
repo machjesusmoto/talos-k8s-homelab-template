@@ -1,0 +1,164 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: paperless-ngx
+  namespace: paperless
+  labels:
+    app.kubernetes.io/name: paperless-ngx
+    app.kubernetes.io/component: application
+    app.kubernetes.io/part-of: paperless-ngx
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: paperless-ngx
+      app.kubernetes.io/component: application
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: paperless-ngx
+        app.kubernetes.io/component: application
+        app.kubernetes.io/part-of: paperless-ngx
+    spec:
+      containers:
+      - name: paperless
+        image: ghcr.io/paperless-ngx/paperless-ngx:latest
+        env:
+        # User mapping for official image
+        - name: USERMAP_UID
+          value: "1000"
+        - name: USERMAP_GID
+          value: "1000"
+        # Database configuration
+        - name: PAPERLESS_DBENGINE
+          value: "postgres"
+        - name: PAPERLESS_DBHOST
+          value: "postgres"
+        - name: PAPERLESS_DBNAME
+          value: "paperless"
+        - name: PAPERLESS_DBUSER
+          value: "paperless"
+        - name: PAPERLESS_DBPASS
+          valueFrom:
+            secretKeyRef:
+              name: paperless-secrets
+              key: POSTGRES_PASSWORD
+        # Redis configuration
+        - name: PAPERLESS_REDIS
+          value: "redis://redis:6379"
+        # Paperless configuration
+        - name: PAPERLESS_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: paperless-secrets
+              key: PAPERLESS_SECRET_KEY
+        - name: PAPERLESS_URL
+          value: "https://paperless.k8s.dttesting.com"
+        - name: PAPERLESS_TIME_ZONE
+          value: "America/Los_Angeles"
+        - name: PAPERLESS_OCR_LANGUAGE
+          value: "eng"
+        - name: PAPERLESS_OCR_LANGUAGES
+          value: "eng fra spa deu"
+        # Admin account
+        - name: PAPERLESS_ADMIN_USER
+          valueFrom:
+            secretKeyRef:
+              name: paperless-secrets
+              key: PAPERLESS_ADMIN_USER
+        - name: PAPERLESS_ADMIN_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: paperless-secrets
+              key: PAPERLESS_ADMIN_PASSWORD
+        - name: PAPERLESS_ADMIN_MAIL
+          valueFrom:
+            secretKeyRef:
+              name: paperless-secrets
+              key: PAPERLESS_ADMIN_MAIL
+        ports:
+        - name: http
+          containerPort: 8000
+          protocol: TCP
+        volumeMounts:
+        - name: paperless-data
+          mountPath: /usr/src/paperless/data
+        - name: paperless-media
+          mountPath: /usr/src/paperless/media
+        - name: paperless-export
+          mountPath: /usr/src/paperless/export
+        - name: paperless-consume
+          mountPath: /usr/src/paperless/consume
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "500m"
+          limits:
+            memory: "4Gi"
+            cpu: "2000m"
+        livenessProbe:
+          httpGet:
+            path: /
+            port: http
+          initialDelaySeconds: 120
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /
+            port: http
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+      
+      # Gotenberg for document processing
+      - name: gotenberg
+        image: gotenberg/gotenberg:8.5.1
+        args:
+        - "gotenberg"
+        - "--chromium-disable-web-security"
+        - "--chromium-allow-list=file:///"
+        ports:
+        - name: gotenberg
+          containerPort: 3000
+          protocol: TCP
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "1Gi"
+            cpu: "1000m"
+      
+      # Tika for document processing
+      - name: tika
+        image: apache/tika:latest-full
+        ports:
+        - name: tika
+          containerPort: 9998
+          protocol: TCP
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "1Gi"
+            cpu: "1000m"
+      
+      volumes:
+      - name: paperless-data
+        persistentVolumeClaim:
+          claimName: paperless-data
+      - name: paperless-media
+        persistentVolumeClaim:
+          claimName: paperless-media
+      - name: paperless-export
+        persistentVolumeClaim:
+          claimName: paperless-export
+      - name: paperless-consume
+        persistentVolumeClaim:
+          claimName: paperless-consume
