@@ -1,0 +1,62 @@
+---
+# Namespaces that require privileged pod security standards
+# These namespaces run LinuxServer containers that need elevated permissions
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: media
+  labels:
+    app.kubernetes.io/name: media-management
+    pod-security.kubernetes.io/enforce: privileged
+    pod-security.kubernetes.io/warn: privileged
+    pod-security.kubernetes.io/audit: privileged
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: downloads
+  labels:
+    app.kubernetes.io/name: download-clients
+    pod-security.kubernetes.io/enforce: privileged
+    pod-security.kubernetes.io/warn: privileged
+    pod-security.kubernetes.io/audit: privileged
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: automation
+  labels:
+    app.kubernetes.io/name: indexers-automation
+    pod-security.kubernetes.io/enforce: privileged
+    pod-security.kubernetes.io/warn: privileged
+    pod-security.kubernetes.io/audit: privileged
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: household
+  labels:
+    app.kubernetes.io/name: household-management
+    pod-security.kubernetes.io/enforce: privileged
+    pod-security.kubernetes.io/warn: privileged
+    pod-security.kubernetes.io/audit: privileged
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: gluetun
+  labels:
+    app.kubernetes.io/name: vpn-gateway
+    pod-security.kubernetes.io/enforce: privileged
+    pod-security.kubernetes.io/warn: privileged
+    pod-security.kubernetes.io/audit: privileged
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: notifiarr
+  labels:
+    app.kubernetes.io/name: notification-hub
+    pod-security.kubernetes.io/enforce: privileged
+    pod-security.kubernetes.io/warn: privileged
+    pod-security.kubernetes.io/audit: privileged

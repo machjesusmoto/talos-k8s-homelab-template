@@ -21,6 +21,9 @@ spec:
         app.kubernetes.io/component: vpn
         app.kubernetes.io/part-of: homelab
     spec:
+      # Use host networking to bypass CNI egress filtering for VPN traffic
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
       containers:
       - name: gluetun
         image: qmcgaw/gluetun:v3.38.0
