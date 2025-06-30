@@ -285,6 +285,13 @@ kubectl apply -f kubernetes/gitops/applications/root-app.yaml
    - Check firewall rules for ports 50000 (Talos) and 6443 (Kubernetes)
    - Verify DNS resolution for all nodes
 
+5. **VPN (Gluetun) connectivity issues**:
+   - Error: VPN fails to connect despite correct credentials
+   - **Cause**: Talos CNI egress filtering blocks non-standard ports
+   - **Solution**: Enable host networking in Gluetun deployment
+   - **Details**: The deployment scripts automatically configure host networking for VPN containers
+   - **Note**: This bypasses CNI filtering, allowing VPN ports (1637, 51820, etc.)
+
 ### Recovery Steps
 
 If deployment fails:

@@ -1,25 +1,64 @@
 # Master Configuration File for Ultimate Life Automation Platform
 # This file contains all user-specific configurations required for a turnkey deployment
+# 
+# IMPORTANT: Copy this file to configurations.yaml and fill in your values
 # Values marked as REQUIRED must be filled before deployment
+
+# Cluster Configuration
+cluster:
+  name: "homelab"  # Cluster name - change if desired
+  # Control Plane Nodes - UPDATE THESE IPs FOR YOUR ENVIRONMENT
+  control_planes:
+    - ip: "192.168.1.241"  # REQUIRED: Change to your first control plane IP
+      hostname: "talos-cp-01"
+    - ip: "192.168.1.242"  # REQUIRED: Change to your second control plane IP
+      hostname: "talos-cp-02"
+    - ip: "192.168.1.243"  # REQUIRED: Change to your third control plane IP
+      hostname: "talos-cp-03"
+  # Worker Nodes - UPDATE THESE IPs FOR YOUR ENVIRONMENT
+  workers:
+    - ip: "192.168.1.244"  # REQUIRED: Change to your first worker IP
+      hostname: "talos-worker-01"
+    - ip: "192.168.1.245"  # REQUIRED: Change to your second worker IP
+      hostname: "talos-worker-02"
+  # Ports (usually don't need to change)
+  kubernetes_api_port: 6443
+  talos_api_port: 50000
+  # Talos Configuration
+  talos_version: "v1.7.5"  # Update as needed
+  architecture: "amd64"
 
 # DNS and Domain Configuration
 domain:
-  base: "k8s.dttesting.com"  # Base domain for all services
-  email: "admin@dttesting.com"  # REQUIRED: Email for Let's Encrypt certificates
+  base: "k8s.example.com"  # REQUIRED: Change to your domain
+  email: "admin@example.com"  # REQUIRED: Your email for Let's Encrypt certificates
 
 # Cloudflare Configuration (for DNS-01 challenges)
 cloudflare:
-  email: "motoyuki85@gmail.com"  # REQUIRED: Cloudflare account email
+  email: "your-email@example.com"  # REQUIRED: Your Cloudflare account email
   api_token: "your-cloudflare-api-token"  # REQUIRED: Cloudflare API token with Zone:Read and DNS:Edit permissions
-  zone_id: "458be0a82a2c23d694f"  # OPTIONAL: Can be auto-discovered from domain
+  zone_id: ""  # OPTIONAL: Can be auto-discovered from domain
 
 # VPN Configuration (Gluetun)
+# NOTE: Gluetun uses host networking to bypass Talos CNI egress filtering
+# This allows VPN connections on non-standard ports (1637, 51820, etc.)
 vpn:
-  provider: "surfshark"  # REQUIRED: VPN provider (surfshark, nordvpn, expressvpn, etc.)
-  username: "your-vpn-username"  # REQUIRED: VPN account username
-  password: "your-vpn-password"  # REQUIRED: VPN account password
-  server_regions: "Netherlands"  # OPTIONAL: Preferred server regions
-  port_forwarding: false  # Enable if your VPN supports it
+  provider: "airvpn"  # Your VPN provider
+  type: "wireguard"  # VPN type
+  timezone: "America/Los_Angeles"  # REQUIRED: Your timezone
+  puid: 100
+  pgid: 1000
+  firewall_vpn_input_ports: "11403"
+  # Optional: Specify a custom endpoint to use "custom" provider mode
+  # wireguard_endpoint: "198.44.133.70:1637"  # Uncomment and set for specific server
+  # VPN Configuration - GET THESE FROM YOUR VPN PROVIDER
+  wireguard_public_key: "your-wireguard-public-key"  # REQUIRED if using WireGuard
+  wireguard_private_key: "your-wireguard-private-key"  # REQUIRED if using WireGuard
+  wireguard_preshared_key: "your-wireguard-preshared-key"  # REQUIRED if using WireGuard
+  wireguard_addresses: "10.x.x.x/32"  # REQUIRED: Your VPN assigned IP
+  server_countries: "United States"  # Your preferred VPN server country
+  server_cities: "Denver"  # Your preferred VPN server city
+  health_vpn_duration: "120s"
 
 # Media Management Configuration
 media:
@@ -85,7 +124,7 @@ paperless:
   postgres_password: "paperless-db-password"  # REQUIRED: Database password
   redis_password: "paperless-redis-password"  # OPTIONAL: Redis password if needed
   ocr_languages: "eng"  # Languages for OCR (eng, deu, fra, etc.)
-  time_zone: "America/Chicago"  # Your timezone
+  time_zone: "America/Chicago"  # REQUIRED: Your timezone
 
 # Household Management Configuration
 grocy:
@@ -121,7 +160,8 @@ homer:
 # ArgoCD GitOps
 argocd:
   admin_password: "changeme123!"  # REQUIRED: Change this!
-  github_repo: "https://github.com/yourusername/k8s-homelab-migration"  # Your repo URL
+  github_repo: "https://github.com/yourusername/k8s-homelab-migration"  # REQUIRED: Your forked repo URL
+  github_branch: "main"  # Branch to track
   github_token: ""  # OPTIONAL: For private repos
 
 # Remote Desktop
@@ -136,11 +176,29 @@ storage:
 
 # Network Configuration
 network:
-  metallb_ip_range: "192.168.1.200-192.168.1.239"  # LoadBalancer IP range
-  cluster_vip: "192.168.1.240"  # Kubernetes API VIP
+  metallb_ip_range: "192.168.1.200-192.168.1.239"  # REQUIRED: LoadBalancer IP range (adjust for your network)
+  cluster_vip: "192.168.1.240"  # REQUIRED: Kubernetes API VIP (adjust for your network)
   
 # Security Settings
 security:
   # Generate strong passwords for production use!
   # You can use: openssl rand -base64 32
   default_admin_password: "changeme123!"  # NEVER use this in production!
+
+# Proxmox Configuration (optional - for automated VM management)
+proxmox:
+  enabled: false  # Set to true if using Proxmox automation
+  node: "proxmox-node1"  # Your Proxmox node name
+  # VM ID mappings for automated ISO ejection - UPDATE THESE FOR YOUR VMs
+  vm_mappings:
+    "192.168.1.241": 241  # Control plane 1 VM ID
+    "192.168.1.242": 242  # Control plane 2 VM ID
+    "192.168.1.243": 243  # Control plane 3 VM ID
+    "192.168.1.244": 244  # Worker 1 VM ID
+    "192.168.1.245": 245  # Worker 2 VM ID
+
+# External Services (usually don't need to change)
+external_services:
+  talos_factory_url: "https://factory.talos.dev"
+  letsencrypt_prod_url: "https://acme-v02.api.letsencrypt.org/directory"
+  letsencrypt_staging_url: "https://acme-staging-v02.api.letsencrypt.org/directory"

@@ -8,12 +8,12 @@ metadata:
     app.kubernetes.io/component: vpn
     app.kubernetes.io/part-of: homelab
 data:
-  # DNS Configuration
-  DOT: "on"
-  DOT_PROVIDERS: "cloudflare"
+  # DNS Configuration - disabled to avoid port conflicts with host networking
+  DOT: "off"
+  DNS_PLAINTEXT_ADDRESS: ""
   
-  # Firewall Configuration
-  FIREWALL: "on"
+  # Firewall Configuration - disabled since we're using host networking
+  FIREWALL: "off"
   FIREWALL_OUTBOUND_SUBNETS: "192.168.1.0/24,10.0.0.0/8,172.16.0.0/12"
   
   # Health Check

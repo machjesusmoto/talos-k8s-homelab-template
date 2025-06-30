@@ -60,13 +60,72 @@ EOF
 # 2. Generate Gluetun VPN secret
 echo -e "${YELLOW}Generating Gluetun VPN secret...${NC}"
 VPN_PROVIDER=$(get_config "vpn.provider")
-VPN_USERNAME=$(get_config "vpn.username")
-VPN_PASSWORD=$(get_config "vpn.password")
-VPN_REGIONS=$(get_config "vpn.server_regions" "Netherlands")
-check_required "vpn.username" "$VPN_USERNAME"
-check_required "vpn.password" "$VPN_PASSWORD"
+VPN_TYPE=$(get_config "vpn.type" "openvpn")
 
-cat > "$PROJECT_ROOT/kubernetes/apps/gluetun/vpn-secret.yaml" <<EOF
+# Handle different VPN types
+if [ "$VPN_TYPE" = "wireguard" ]; then
+    VPN_USERNAME=""
+    VPN_PASSWORD=""
+    WIREGUARD_PRIVATE_KEY=$(get_config "vpn.wireguard_private_key")
+    WIREGUARD_PUBLIC_KEY=$(get_config "vpn.wireguard_public_key")
+    WIREGUARD_PRESHARED_KEY=$(get_config "vpn.wireguard_preshared_key")
+    WIREGUARD_ADDRESSES=$(get_config "vpn.wireguard_addresses")
+    check_required "vpn.wireguard_private_key" "$WIREGUARD_PRIVATE_KEY"
+else
+    VPN_USERNAME=$(get_config "vpn.username")
+    VPN_PASSWORD=$(get_config "vpn.password")
+    check_required "vpn.username" "$VPN_USERNAME"
+    check_required "vpn.password" "$VPN_PASSWORD"
+fi
+VPN_REGIONS=$(get_config "vpn.server_regions" "Netherlands")
+
+if [ "$VPN_TYPE" = "wireguard" ]; then
+    WIREGUARD_ENDPOINT=$(get_config 'vpn.wireguard_endpoint' '')
+    if [ -n "$WIREGUARD_ENDPOINT" ]; then
+        # Use custom provider with specific endpoint configuration to bypass CNI egress filtering
+        echo "Using custom provider with specific endpoint: $WIREGUARD_ENDPOINT"
+        cat > "$PROJECT_ROOT/kubernetes/apps/gluetun/vpn-secret.yaml" <<EOF
+apiVersion: v1
+kind: Secret
+metadata:
+  name: gluetun-vpn-secret
+  namespace: gluetun
+type: Opaque
+stringData:
+  VPN_SERVICE_PROVIDER: "custom"
+  VPN_TYPE: "wireguard"
+  WIREGUARD_PRIVATE_KEY: "$WIREGUARD_PRIVATE_KEY"
+  WIREGUARD_PUBLIC_KEY: "$WIREGUARD_PUBLIC_KEY"
+  WIREGUARD_PRESHARED_KEY: "$WIREGUARD_PRESHARED_KEY"
+  WIREGUARD_ADDRESSES: "$WIREGUARD_ADDRESSES"
+  WIREGUARD_ENDPOINT_IP: "$(echo "$WIREGUARD_ENDPOINT" | cut -d: -f1)"
+  WIREGUARD_ENDPOINT_PORT: "$(echo "$WIREGUARD_ENDPOINT" | cut -d: -f2)"
+  WIREGUARD_MTU: "$(get_config 'vpn.wireguard_mtu' '1320')"
+EOF
+    else
+        # Use server selection mode
+        cat > "$PROJECT_ROOT/kubernetes/apps/gluetun/vpn-secret.yaml" <<EOF
+apiVersion: v1
+kind: Secret
+metadata:
+  name: gluetun-vpn-secret
+  namespace: gluetun
+type: Opaque
+stringData:
+  VPN_SERVICE_PROVIDER: "$VPN_PROVIDER"
+  VPN_TYPE: "wireguard"
+  WIREGUARD_PRIVATE_KEY: "$WIREGUARD_PRIVATE_KEY"
+  WIREGUARD_PUBLIC_KEY: "$WIREGUARD_PUBLIC_KEY"
+  WIREGUARD_PRESHARED_KEY: "$WIREGUARD_PRESHARED_KEY"
+  WIREGUARD_ADDRESSES: "$WIREGUARD_ADDRESSES"
+  WIREGUARD_MTU: "$(get_config 'vpn.wireguard_mtu' '1320')"
+  SERVER_COUNTRIES: "$(get_config 'vpn.server_countries' '')"
+  SERVER_CITIES: "$(get_config 'vpn.server_cities' '')"
+  FIREWALL_VPN_INPUT_PORTS: "$(get_config 'vpn.firewall_vpn_input_ports' '')"
+EOF
+    fi
+else
+    cat > "$PROJECT_ROOT/kubernetes/apps/gluetun/vpn-secret.yaml" <<EOF
 apiVersion: v1
 kind: Secret
 metadata:
@@ -80,6 +139,7 @@ stringData:
   OPENVPN_PASSWORD: "$VPN_PASSWORD"
   SERVER_REGIONS: "$VPN_REGIONS"
 EOF
+fi
 
 # 3. Generate Paperless-ngx secrets
 echo -e "${YELLOW}Generating Paperless-ngx secrets...${NC}"
