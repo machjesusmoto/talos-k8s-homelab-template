@@ -1,28 +1,45 @@
 # Apply Talos configurations to nodes - Windows version
 $ErrorActionPreference = "Stop"
 
+# Load configuration library
+$ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+. "$ScriptDir\lib\Config-Reader.ps1"
+
 Write-Host "=== Applying Talos Configurations ===" -ForegroundColor Green
+Write-Host "Using configurations from: $script:ConfigFile" -ForegroundColor Cyan
 
-# Control plane nodes
-$CPNodes = @(
-    "192.168.1.241",
-    "192.168.1.242", 
-    "192.168.1.243"
-)
+# Get node lists from configuration
+$CPNodes = Get-ControlPlaneIPs
+$WorkerNodes = Get-WorkerIPs
 
-# Worker nodes
-$WorkerNodes = @(
-    "192.168.1.244",
-    "192.168.1.245"
-)
+Write-Host "`nTarget nodes from configuration:" -ForegroundColor Yellow
+Write-Host "Control Plane Nodes:" -ForegroundColor Cyan
+foreach ($ip in $CPNodes) {
+    $hostname = Get-NodeHostname -IP $ip
+    Write-Host "  - ${hostname}: $ip"
+}
 
-# VM configuration for ISO ejection (optional - modify as needed)
-$ProxmoxVMs = @{
-    "192.168.1.241" = @{ vmid = "241"; node = "proxmox-node1" }
-    "192.168.1.242" = @{ vmid = "242"; node = "proxmox-node1" }
-    "192.168.1.243" = @{ vmid = "243"; node = "proxmox-node1" }
-    "192.168.1.244" = @{ vmid = "244"; node = "proxmox-node1" }
-    "192.168.1.245" = @{ vmid = "245"; node = "proxmox-node1" }
+Write-Host "Worker Nodes:" -ForegroundColor Cyan
+foreach ($ip in $WorkerNodes) {
+    $hostname = Get-NodeHostname -IP $ip
+    Write-Host "  - ${hostname}: $ip"
+}
+
+# Build Proxmox VM configuration if enabled
+$ProxmoxVMs = @{}
+if (Test-ConfigValue -Path 'proxmox.enabled') {
+    $proxmoxEnabled = Get-ConfigValue -Path 'proxmox.enabled'
+    if ($proxmoxEnabled -eq $true) {
+        $allIPs = $CPNodes + $WorkerNodes
+        foreach ($ip in $allIPs) {
+            $vmid = Get-ProxmoxVMID -IP $ip
+            $node = Get-ConfigValue -Path 'proxmox.node' -Default 'proxmox-node1'
+            if ($vmid) {
+                $ProxmoxVMs[$ip] = @{ vmid = $vmid; node = $node }
+            }
+        }
+        Write-Host "`nProxmox integration enabled for VM management" -ForegroundColor Green
+    }
 }
 
 # Function to eject ISO from Proxmox VM (requires pvesh/API access)

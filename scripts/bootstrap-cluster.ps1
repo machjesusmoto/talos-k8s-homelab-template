@@ -1,11 +1,23 @@
 # Bootstrap and verify Talos cluster - Windows version
 $ErrorActionPreference = "Stop"
 
-Write-Host "=== Bootstrapping Talos Cluster ===" -ForegroundColor Green
+# Load configuration library
+$ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+. "$ScriptDir\lib\Config-Reader.ps1"
 
-# Configuration
-$FirstCP = "192.168.1.241"
-$AllCPs = @("192.168.1.241", "192.168.1.242", "192.168.1.243")
+Write-Host "=== Bootstrapping Talos Cluster ===" -ForegroundColor Green
+Write-Host "Using configurations from: $script:ConfigFile" -ForegroundColor Cyan
+
+# Get node lists from configuration
+$CPNodes = Get-ControlPlaneIPs
+$FirstCP = $CPNodes[0]
+$AllCPs = $CPNodes
+
+Write-Host "`nCluster configuration:" -ForegroundColor Yellow
+Write-Host "  Name: $($global:HomeLabConfig.ClusterName)"
+Write-Host "  VIP: $($global:HomeLabConfig.ClusterVIP)"
+Write-Host "  First Control Plane: $FirstCP ($(Get-NodeHostname -IP $FirstCP))"
+Write-Host "  All Control Planes: $($AllCPs -join ', ')"
 
 # Check prerequisites
 Write-Host "Checking prerequisites..." -ForegroundColor Yellow

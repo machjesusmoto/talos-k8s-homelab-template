@@ -27,6 +27,7 @@ spec:
           type: RuntimeDefault
         runAsUser: 0
         runAsGroup: 0
+        fsGroup: 0
       containers:
       - name: flaresolverr
         image: ghcr.io/flaresolverr/flaresolverr:latest
@@ -67,13 +68,11 @@ spec:
           timeoutSeconds: 5
           failureThreshold: 3
         securityContext:
+          privileged: true
           runAsNonRoot: false
           runAsUser: 0
           runAsGroup: 0
-          allowPrivilegeEscalation: false
+          allowPrivilegeEscalation: true
           readOnlyRootFilesystem: false
-          capabilities:
-            drop:
-            - ALL
       nodeSelector:
         kubernetes.io/os: linux

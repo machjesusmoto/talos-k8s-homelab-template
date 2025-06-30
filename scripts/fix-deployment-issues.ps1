@@ -7,8 +7,25 @@ $ProjectRoot = Split-Path -Parent $ScriptDir
 
 Write-Host "Fixing deployment issues..." -ForegroundColor Green
 
-# 1. Fix DNS propagation issue by forcing cert-manager to retry
-Write-Host "1. Restarting cert-manager to force DNS propagation check..." -ForegroundColor Yellow
+# 1. Fix namespace security labels for LinuxServer containers
+Write-Host "1. Applying privileged security labels to namespaces..." -ForegroundColor Yellow
+$namespaces = @("media", "downloads", "automation", "household", "gluetun", "notifiarr")
+foreach ($ns in $namespaces) {
+    try {
+        kubectl get namespace $ns | Out-Null
+        Write-Host "Labeling namespace: $ns"
+        kubectl label namespace $ns `
+            pod-security.kubernetes.io/enforce=privileged `
+            pod-security.kubernetes.io/warn=privileged `
+            pod-security.kubernetes.io/audit=privileged `
+            --overwrite
+    } catch {
+        # Namespace doesn't exist, skip
+    }
+}
+
+# 2. Fix DNS propagation issue by forcing cert-manager to retry
+Write-Host "2. Restarting cert-manager to force DNS propagation check..." -ForegroundColor Yellow
 kubectl rollout restart deployment cert-manager -n cert-manager
 kubectl rollout restart deployment cert-manager-webhook -n cert-manager
 
@@ -17,8 +34,8 @@ Write-Host "Waiting for cert-manager restart..."
 kubectl rollout status deployment cert-manager -n cert-manager --timeout=300s
 kubectl rollout status deployment cert-manager-webhook -n cert-manager --timeout=300s
 
-# 2. Fix Paperless-ngx by switching to non-root container
-Write-Host "2. Fixing Paperless-ngx deployment..." -ForegroundColor Yellow
+# 3. Fix Paperless-ngx by switching to non-root container
+Write-Host "3. Fixing Paperless-ngx deployment..." -ForegroundColor Yellow
 @'
 spec:
   template:
@@ -43,10 +60,10 @@ spec:
 
 kubectl patch deployment paperless-ngx -n paperless --patch-file="$env:TEMP\paperless-patch.yaml"
 
-# 3. Apply missing secrets if configurations.yaml exists
+# 4. Apply missing secrets if configurations.yaml exists
 $ConfigFile = Join-Path $ProjectRoot "configurations.yaml"
 if (Test-Path $ConfigFile) {
-    Write-Host "3. Generating and applying secrets from configurations.yaml..." -ForegroundColor Yellow
+    Write-Host "4. Generating and applying secrets from configurations.yaml..." -ForegroundColor Yellow
     
     # Generate secrets
     & "$ProjectRoot\scripts\generate-app-secrets.ps1"
@@ -69,8 +86,8 @@ if (Test-Path $ConfigFile) {
     Write-Host "Please create configurations.yaml from the template and run this script again."
 }
 
-# 4. Force ArgoCD sync for OutOfSync applications
-Write-Host "4. Syncing OutOfSync ArgoCD applications..." -ForegroundColor Yellow
+# 5. Force ArgoCD sync for OutOfSync applications
+Write-Host "5. Syncing OutOfSync ArgoCD applications..." -ForegroundColor Yellow
 $apps = @("code-server", "core-infrastructure", "download-clients", "media-management")
 foreach ($app in $apps) {
     Write-Host "Syncing $app..."
@@ -83,8 +100,8 @@ foreach ($app in $apps) {
     }
 }
 
-# 5. Delete stuck challenges to force recreation
-Write-Host "5. Cleaning up stuck certificate challenges..." -ForegroundColor Yellow
+# 6. Delete stuck challenges to force recreation
+Write-Host "6. Cleaning up stuck certificate challenges..." -ForegroundColor Yellow
 $challenges = kubectl get challenges -A -o json | ConvertFrom-Json
 $oneHourAgo = (Get-Date).AddHours(-1)
 
@@ -98,8 +115,8 @@ foreach ($challenge in $challenges.items) {
     }
 }
 
-# 6. Restart applications with issues
-Write-Host "6. Restarting problematic deployments..." -ForegroundColor Yellow
+# 7. Restart applications with issues
+Write-Host "7. Restarting problematic deployments..." -ForegroundColor Yellow
 try { kubectl rollout restart deployment gluetun -n gluetun } catch {}
 try { kubectl rollout restart deployment paperless-ngx -n paperless } catch {}
 

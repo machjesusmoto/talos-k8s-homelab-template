@@ -14,8 +14,22 @@ NC='\033[0m' # No Color
 
 echo -e "${GREEN}Fixing deployment issues...${NC}"
 
-# 1. Fix DNS propagation issue by forcing cert-manager to retry
-echo -e "${YELLOW}1. Restarting cert-manager to force DNS propagation check...${NC}"
+# 1. Fix namespace security labels for LinuxServer containers
+echo -e "${YELLOW}1. Applying privileged security labels to namespaces...${NC}"
+namespaces=("media" "downloads" "automation" "household" "gluetun" "notifiarr")
+for ns in "${namespaces[@]}"; do
+    if kubectl get namespace "$ns" &> /dev/null; then
+        echo "Labeling namespace: $ns"
+        kubectl label namespace "$ns" \
+            pod-security.kubernetes.io/enforce=privileged \
+            pod-security.kubernetes.io/warn=privileged \
+            pod-security.kubernetes.io/audit=privileged \
+            --overwrite || true
+    fi
+done
+
+# 2. Fix DNS propagation issue by forcing cert-manager to retry
+echo -e "${YELLOW}2. Restarting cert-manager to force DNS propagation check...${NC}"
 kubectl rollout restart deployment cert-manager -n cert-manager
 kubectl rollout restart deployment cert-manager-webhook -n cert-manager
 
@@ -24,8 +38,8 @@ echo "Waiting for cert-manager restart..."
 kubectl rollout status deployment cert-manager -n cert-manager --timeout=300s
 kubectl rollout status deployment cert-manager-webhook -n cert-manager --timeout=300s
 
-# 2. Fix Paperless-ngx by switching to non-root container
-echo -e "${YELLOW}2. Fixing Paperless-ngx deployment...${NC}"
+# 3. Fix Paperless-ngx by switching to non-root container
+echo -e "${YELLOW}3. Fixing Paperless-ngx deployment...${NC}"
 cat > /tmp/paperless-patch.yaml <<'EOF'
 spec:
   template:
@@ -50,9 +64,9 @@ EOF
 
 kubectl patch deployment paperless-ngx -n paperless --patch-file=/tmp/paperless-patch.yaml
 
-# 3. Apply missing secrets if configurations.yaml exists
+# 4. Apply missing secrets if configurations.yaml exists
 if [ -f "$PROJECT_ROOT/configurations.yaml" ]; then
-    echo -e "${YELLOW}3. Generating and applying secrets from configurations.yaml...${NC}"
+    echo -e "${YELLOW}4. Generating and applying secrets from configurations.yaml...${NC}"
     
     # Make generate script executable
     chmod +x "$PROJECT_ROOT/scripts/generate-app-secrets.sh"
@@ -75,8 +89,8 @@ else
     echo "Please create configurations.yaml from the template and run this script again."
 fi
 
-# 4. Force ArgoCD sync for OutOfSync applications
-echo -e "${YELLOW}4. Syncing OutOfSync ArgoCD applications...${NC}"
+# 5. Force ArgoCD sync for OutOfSync applications
+echo -e "${YELLOW}5. Syncing OutOfSync ArgoCD applications...${NC}"
 for app in code-server core-infrastructure download-clients media-management; do
     echo "Syncing $app..."
     kubectl patch application $app -n argocd \
@@ -84,8 +98,8 @@ for app in code-server core-infrastructure download-clients media-management; do
         --type=merge || true
 done
 
-# 5. Delete stuck challenges to force recreation
-echo -e "${YELLOW}5. Cleaning up stuck certificate challenges...${NC}"
+# 6. Delete stuck challenges to force recreation
+echo -e "${YELLOW}6. Cleaning up stuck certificate challenges...${NC}"
 # Only delete challenges older than 1 hour
 kubectl get challenges -A -o json | \
     jq -r '.items[] | select(.metadata.creationTimestamp | fromdate < (now - 3600)) | 
@@ -95,8 +109,8 @@ kubectl get challenges -A -o json | \
         kubectl delete challenge -n "$ns" "$name"
     done
 
-# 6. Restart applications with issues
-echo -e "${YELLOW}6. Restarting problematic deployments...${NC}"
+# 7. Restart applications with issues
+echo -e "${YELLOW}7. Restarting problematic deployments...${NC}"
 kubectl rollout restart deployment gluetun -n gluetun || true
 kubectl rollout restart deployment paperless-ngx -n paperless || true
 

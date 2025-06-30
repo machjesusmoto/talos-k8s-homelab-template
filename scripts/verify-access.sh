@@ -1,12 +1,29 @@
 #!/bin/bash
 
-echo "=== Verifying Talos Cluster Access and Health ==="
+set -euo pipefail
 
-# Talos cluster nodes
-CONTROL_PLANES=("192.168.1.241" "192.168.1.242" "192.168.1.243")
-WORKERS=("192.168.1.244" "192.168.1.245")
-ALL_NODES=("${CONTROL_PLANES[@]}" "${WORKERS[@]}")
-VIP="192.168.1.240"
+# Load configuration library
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/lib/config-reader.sh"
+
+echo "=== Verifying Talos Cluster Access and Health ==="
+echo "Using configurations from: $CONFIG_FILE"
+
+# Load configuration values
+load_common_config
+
+# Get node lists from configuration
+mapfile -t CONTROL_PLANES < <(get_control_plane_ips)
+mapfile -t WORKERS < <(get_worker_ips)
+mapfile -t ALL_NODES < <(get_all_node_ips)
+VIP="$CLUSTER_VIP"
+
+echo ""
+echo "Cluster: $CLUSTER_NAME"
+echo "VIP: $VIP"
+echo "Control Planes: ${CONTROL_PLANES[*]}"
+echo "Workers: ${WORKERS[*]}"
+echo ""
 
 GREEN='\033[0;32m'
 RED='\033[0;31m'

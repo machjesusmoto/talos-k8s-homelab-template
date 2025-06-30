@@ -2,6 +2,12 @@
 # Execute commands across Talos cluster nodes - Linux version
 # Usage: ./cluster-exec.sh <target> "command to run"
 
+set -euo pipefail
+
+# Load configuration library
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/lib/config-reader.sh"
+
 TARGET=$1
 COMMAND=$2
 
@@ -16,9 +22,12 @@ if [[ -z "$TARGET" || -z "$COMMAND" ]]; then
   exit 1
 fi
 
-# Node definitions
-CONTROL_PLANES=("192.168.1.241" "192.168.1.242" "192.168.1.243")
-WORKERS=("192.168.1.244" "192.168.1.245")
+# Load configuration values
+load_common_config
+
+# Get node lists from configuration
+mapfile -t CONTROL_PLANES < <(get_control_plane_ips)
+mapfile -t WORKERS < <(get_worker_ips)
 
 # Determine target nodes
 case $TARGET in

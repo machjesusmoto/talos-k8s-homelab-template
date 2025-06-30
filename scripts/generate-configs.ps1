@@ -1,12 +1,21 @@
 # Generate Talos configuration files - Windows version
-param(
-    [string]$ClusterName = "homelab",
-    [string]$ClusterEndpoint = "192.168.1.240"
-)
+param()
 
 $ErrorActionPreference = "Stop"
 
+# Load configuration library
+$ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+. "$ScriptDir\lib\Config-Reader.ps1"
+
 Write-Host "=== Talos Configuration Generator ===" -ForegroundColor Green
+Write-Host "Using configurations from: $script:ConfigFile" -ForegroundColor Cyan
+
+# Display configuration values
+Write-Host "`nCluster configuration:" -ForegroundColor Yellow
+Write-Host "  Name: $($global:HomeLabConfig.ClusterName)"
+Write-Host "  VIP: $($global:HomeLabConfig.ClusterVIP)"
+Write-Host "  Domain: $($global:HomeLabConfig.BaseDomain)"
+Write-Host "  Talos Version: $($global:HomeLabConfig.TalosVersion)"
 
 # Check if talosctl is available
 try {
@@ -26,30 +35,50 @@ if (-not (Test-Path $secretsFile)) {
     Write-Host "Using existing secrets.yaml" -ForegroundColor Cyan
 }
 
-Write-Host "`nGenerating configurations for:" -ForegroundColor Yellow
-Write-Host "  Cluster Name: $ClusterName"
-Write-Host "  Cluster Endpoint: https://${ClusterEndpoint}:6443"
+# Create talos directory if it doesn't exist
+if (-not (Test-Path "talos")) {
+    New-Item -ItemType Directory -Path "talos" | Out-Null
+}
+
+# Build cluster endpoint from configuration
+$ClusterEndpoint = "https://$($global:HomeLabConfig.ClusterVIP):$($global:HomeLabConfig.KubernetesApiPort)"
+
+Write-Host "`nGenerating configurations for endpoint: $ClusterEndpoint" -ForegroundColor Yellow
 
 # Generate base configs
 Write-Host "`nGenerating base configurations..." -ForegroundColor Yellow
 
 # Control plane config
-talosctl gen config $ClusterName "https://${ClusterEndpoint}:6443" `
+talosctl gen config $global:HomeLabConfig.ClusterName $ClusterEndpoint `
     --with-secrets $secretsFile `
     --output-types controlplane `
     --output talos\controlplane-base.yaml
 
 # Worker config
-talosctl gen config $ClusterName "https://${ClusterEndpoint}:6443" `
+talosctl gen config $global:HomeLabConfig.ClusterName $ClusterEndpoint `
     --with-secrets $secretsFile `
     --output-types worker `
     --output talos\worker-base.yaml
 
 # Talosconfig for kubectl
-talosctl gen config $ClusterName "https://${ClusterEndpoint}:6443" `
+talosctl gen config $global:HomeLabConfig.ClusterName $ClusterEndpoint `
     --with-secrets $secretsFile `
     --output-types talosconfig `
     --output talos\talosconfig
+
+# Display node configuration
+Write-Host "`nNode configuration from configurations.yaml:" -ForegroundColor Cyan
+Write-Host "Control Plane Nodes:" -ForegroundColor Yellow
+$cpNodes = Get-ControlPlaneNodes
+foreach ($node in $cpNodes) {
+    Write-Host "  - $($node.hostname): $($node.ip)"
+}
+
+Write-Host "Worker Nodes:" -ForegroundColor Yellow
+$workerNodes = Get-WorkerNodes
+foreach ($node in $workerNodes) {
+    Write-Host "  - $($node.hostname): $($node.ip)"
+}
 
 Write-Host "`nBase configurations generated!" -ForegroundColor Green
 Write-Host ""

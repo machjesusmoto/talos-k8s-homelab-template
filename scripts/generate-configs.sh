@@ -1,9 +1,24 @@
 #!/bin/bash
 # Generate Talos configuration files
 
-set -e
+set -euo pipefail
+
+# Load configuration library
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/lib/config-reader.sh"
 
 echo "=== Talos Configuration Generator ==="
+echo "Using configurations from: $CONFIG_FILE"
+
+# Load configuration values
+load_common_config
+
+echo "Cluster configuration:"
+echo "  Name: $CLUSTER_NAME"
+echo "  VIP: $CLUSTER_VIP"
+echo "  Domain: $BASE_DOMAIN"
+echo "  Talos Version: $TALOS_VERSION"
+echo ""
 
 # Check if secrets exist
 if [ ! -f "secrets.yaml" ]; then
@@ -14,27 +29,45 @@ else
     echo "Using existing secrets.yaml"
 fi
 
-# Configuration variables
-CLUSTER_NAME="homelab"
-CLUSTER_ENDPOINT="192.168.1.240"
-
 echo "Generating control plane configurations..."
 
-# Generate base configs
-talosctl gen config ${CLUSTER_NAME} https://${CLUSTER_ENDPOINT}:6443 \
+# Create talos directory if it doesn't exist
+mkdir -p talos
+
+# Generate base configs using configuration values
+CLUSTER_ENDPOINT="https://${CLUSTER_VIP}:${KUBERNETES_API_PORT}"
+
+echo "Generating configurations for endpoint: $CLUSTER_ENDPOINT"
+
+talosctl gen config "${CLUSTER_NAME}" "${CLUSTER_ENDPOINT}" \
     --with-secrets secrets.yaml \
     --output-types controlplane \
     --output talos/controlplane-base.yaml
 
-talosctl gen config ${CLUSTER_NAME} https://${CLUSTER_ENDPOINT}:6443 \
+talosctl gen config "${CLUSTER_NAME}" "${CLUSTER_ENDPOINT}" \
     --with-secrets secrets.yaml \
     --output-types worker \
     --output talos/worker-base.yaml
 
-talosctl gen config ${CLUSTER_NAME} https://${CLUSTER_ENDPOINT}:6443 \
+talosctl gen config "${CLUSTER_NAME}" "${CLUSTER_ENDPOINT}" \
     --with-secrets secrets.yaml \
     --output-types talosconfig \
     --output talos/talosconfig
+
+# Display node configuration
+echo ""
+echo "Node configuration from configurations.yaml:"
+echo "Control Plane Nodes:"
+get_control_plane_ips | while read -r ip; do
+    hostname=$(get_node_hostname "$ip")
+    echo "  - $hostname: $ip"
+done
+
+echo "Worker Nodes:"
+get_worker_ips | while read -r ip; do
+    hostname=$(get_node_hostname "$ip")
+    echo "  - $hostname: $ip"
+done
 
 echo ""
 echo "Base configurations generated!"

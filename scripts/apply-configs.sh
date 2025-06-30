@@ -1,22 +1,36 @@
 #!/bin/bash
 # Apply Talos configurations to nodes
 
-set -e
+set -euo pipefail
+
+# Load configuration library
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/lib/config-reader.sh"
 
 echo "=== Applying Talos Configurations ==="
+echo "Using configurations from: $CONFIG_FILE"
 
-# Control plane nodes
-CP_NODES=(
-    "192.168.1.241"
-    "192.168.1.242"
-    "192.168.1.243"
-)
+# Load configuration values
+load_common_config
 
-# Worker nodes
-WORKER_NODES=(
-    "192.168.1.244"
-    "192.168.1.245"
-)
+# Get node lists from configuration
+mapfile -t CP_NODES < <(get_control_plane_ips)
+mapfile -t WORKER_NODES < <(get_worker_ips)
+
+echo ""
+echo "Target nodes from configuration:"
+echo "Control Plane Nodes:"
+for ip in "${CP_NODES[@]}"; do
+    hostname=$(get_node_hostname "$ip")
+    echo "  - $hostname: $ip"
+done
+
+echo "Worker Nodes:"
+for ip in "${WORKER_NODES[@]}"; do
+    hostname=$(get_node_hostname "$ip")
+    echo "  - $hostname: $ip"
+done
+echo ""
 
 # Function to wait for node
 wait_for_node() {

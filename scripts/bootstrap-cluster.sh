@@ -1,13 +1,30 @@
 #!/bin/bash
 # Bootstrap and verify Talos cluster
 
-set -e
+set -euo pipefail
+
+# Load configuration library
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/lib/config-reader.sh"
 
 echo "=== Bootstrapping Talos Cluster ==="
+echo "Using configurations from: $CONFIG_FILE"
 
-# Configuration
-FIRST_CP="192.168.1.241"
-ALL_CPS="192.168.1.241 192.168.1.242 192.168.1.243"
+# Load configuration values
+load_common_config
+
+# Get node lists from configuration
+mapfile -t CP_NODES < <(get_control_plane_ips)
+FIRST_CP="${CP_NODES[0]}"
+ALL_CPS=$(IFS=' '; echo "${CP_NODES[*]}")
+
+echo ""
+echo "Cluster configuration:"
+echo "  Name: $CLUSTER_NAME"
+echo "  VIP: $CLUSTER_VIP"
+echo "  First Control Plane: $FIRST_CP ($(get_node_hostname "$FIRST_CP"))"
+echo "  All Control Planes: $ALL_CPS"
+echo ""
 
 # Bootstrap etcd on first control plane
 echo "Bootstrapping etcd on $FIRST_CP..."
