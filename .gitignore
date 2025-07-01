@@ -55,6 +55,7 @@ secrets/
 secrets.yaml
 controlplane.yaml
 worker.yaml
+configurations.yaml
 
 # Talos configuration files with secrets
 talos/talosconfig
