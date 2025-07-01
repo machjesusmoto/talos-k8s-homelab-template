@@ -31,6 +31,7 @@ charts/*/Chart.lock
 .claude/
 CLAUDE.md
 claude.md
+SESSION_CONTEXT.md
 
 # OS
 .DS_Store
