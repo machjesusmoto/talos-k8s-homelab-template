@@ -82,6 +82,10 @@ backup/
 *-local.yaml
 *.local
 
+# History and backup directories
+.history/
+**/configurations_*.yaml
+
 # ArgoCD CLI configuration
 .argocd/
 argocd
@@ -208,6 +212,16 @@ test-deployments/
 sandbox/
 experimental/
 kubernetes/apps/test-*
+
+# Generated application secrets
+kubernetes/core/cert-manager/cloudflare-secret.yaml
+kubernetes/apps/gluetun/vpn-secret.yaml
+kubernetes/apps/paperless-ngx/paperless-secrets.yaml
+kubernetes/apps/notifiarr/notifiarr-secret.yaml
+kubernetes/apps/download-clients/qbittorrent-secret.yaml
+kubernetes/apps/download-clients/nzbget-secret.yaml
+kubernetes/apps/monitoring/grafana-secret.yaml
+kubernetes/gitops/argocd/argocd-secret.yaml
 
 # Generated application secrets
 kubernetes/core/cert-manager/cloudflare-secret.yaml
