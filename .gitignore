@@ -32,6 +32,8 @@ charts/*/Chart.lock
 CLAUDE.md
 claude.md
 SESSION_CONTEXT.md
+session-summary-*.md
+nfs-troubleshooting-*.md
 
 # OS
 .DS_Store
@@ -213,92 +215,13 @@ sandbox/
 experimental/
 kubernetes/apps/test-*
 
-# Generated application secrets
+# Generated application secrets (consolidated)
 kubernetes/core/cert-manager/cloudflare-secret.yaml
 kubernetes/apps/gluetun/vpn-secret.yaml
 kubernetes/apps/paperless-ngx/paperless-secrets.yaml
 kubernetes/apps/notifiarr/notifiarr-secret.yaml
 kubernetes/apps/download-clients/qbittorrent-secret.yaml
 kubernetes/apps/download-clients/nzbget-secret.yaml
-kubernetes/apps/monitoring/grafana-secret.yaml
-kubernetes/gitops/argocd/argocd-secret.yaml
-
-# Generated application secrets
-kubernetes/core/cert-manager/cloudflare-secret.yaml
-kubernetes/apps/gluetun/vpn-secret.yaml
-kubernetes/apps/paperless-ngx/paperless-secrets.yaml
-kubernetes/apps/notifiarr/notifiarr-secret.yaml
-kubernetes/apps/download-clients/qbittorrent-secret.yaml
-kubernetes/apps/download-clients/nzbget-secret.yaml
-kubernetes/apps/monitoring/grafana-secret.yaml
-kubernetes/gitops/argocd/argocd-secret.yaml
-
-# Generated application secrets
-kubernetes/core/cert-manager/cloudflare-secret.yaml
-kubernetes/apps/gluetun/vpn-secret.yaml
-kubernetes/apps/paperless-ngx/paperless-secrets.yaml
-kubernetes/apps/notifiarr/notifiarr-secret.yaml
-kubernetes/apps/download-clients/qbittorrent-secret.yaml
-kubernetes/apps/download-clients/nzbget-secret.yaml
-kubernetes/apps/monitoring/grafana-secret.yaml
-kubernetes/gitops/argocd/argocd-secret.yaml
-
-# Generated application secrets
-kubernetes/core/cert-manager/cloudflare-secret.yaml
-kubernetes/apps/gluetun/vpn-secret.yaml
-kubernetes/apps/paperless-ngx/paperless-secrets.yaml
-kubernetes/apps/notifiarr/notifiarr-secret.yaml
-kubernetes/apps/download-clients/qbittorrent-secret.yaml
-kubernetes/apps/download-clients/nzbget-secret.yaml
-kubernetes/apps/monitoring/grafana-secret.yaml
-kubernetes/gitops/argocd/argocd-secret.yaml
-
-# Generated application secrets
-kubernetes/core/cert-manager/cloudflare-secret.yaml
-kubernetes/apps/gluetun/vpn-secret.yaml
-kubernetes/apps/paperless-ngx/paperless-secrets.yaml
-kubernetes/apps/notifiarr/notifiarr-secret.yaml
-kubernetes/apps/download-clients/qbittorrent-secret.yaml
-kubernetes/apps/download-clients/nzbget-secret.yaml
-kubernetes/apps/monitoring/grafana-secret.yaml
-kubernetes/gitops/argocd/argocd-secret.yaml
-
-# Generated application secrets
-kubernetes/core/cert-manager/cloudflare-secret.yaml
-kubernetes/apps/gluetun/vpn-secret.yaml
-kubernetes/apps/paperless-ngx/paperless-secrets.yaml
-kubernetes/apps/notifiarr/notifiarr-secret.yaml
-kubernetes/apps/download-clients/qbittorrent-secret.yaml
-kubernetes/apps/download-clients/nzbget-secret.yaml
-kubernetes/apps/monitoring/grafana-secret.yaml
-kubernetes/gitops/argocd/argocd-secret.yaml
-
-# Generated application secrets
-kubernetes/core/cert-manager/cloudflare-secret.yaml
-kubernetes/apps/gluetun/vpn-secret.yaml
-kubernetes/apps/paperless-ngx/paperless-secrets.yaml
-kubernetes/apps/notifiarr/notifiarr-secret.yaml
-kubernetes/apps/download-clients/qbittorrent-secret.yaml
-kubernetes/apps/download-clients/nzbget-secret.yaml
-kubernetes/apps/monitoring/grafana-secret.yaml
-kubernetes/gitops/argocd/argocd-secret.yaml
-
-# Generated application secrets
-kubernetes/core/cert-manager/cloudflare-secret.yaml
-kubernetes/apps/gluetun/vpn-secret.yaml
-kubernetes/apps/paperless-ngx/paperless-secrets.yaml
-kubernetes/apps/notifiarr/notifiarr-secret.yaml
-kubernetes/apps/download-clients/qbittorrent-secret.yaml
-kubernetes/apps/download-clients/nzbget-secret.yaml
-kubernetes/apps/monitoring/grafana-secret.yaml
-kubernetes/gitops/argocd/argocd-secret.yaml
-
-# Generated application secrets
-kubernetes/core/cert-manager/cloudflare-secret.yaml
-kubernetes/apps/gluetun/vpn-secret.yaml
-kubernetes/apps/paperless-ngx/paperless-secrets.yaml
-kubernetes/apps/notifiarr/notifiarr-secret.yaml
-kubernetes/apps/download-clients/qbittorrent-secret.yaml
-kubernetes/apps/download-clients/nzbget-secret.yaml
+kubernetes/apps/downloads/qbittorrent-vpn-secret.yaml
 kubernetes/apps/monitoring/grafana-secret.yaml
 kubernetes/gitops/argocd/argocd-secret.yaml

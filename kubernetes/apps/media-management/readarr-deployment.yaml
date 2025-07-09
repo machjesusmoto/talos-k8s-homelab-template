@@ -30,7 +30,7 @@ spec:
         fsGroup: 1000
       containers:
       - name: readarr
-        image: lscr.io/linuxserver/readarr:develop
+        image: hotio/readarr:latest
         env:
         - name: PUID
           value: "1000"
@@ -82,6 +82,9 @@ spec:
           allowPrivilegeEscalation: false
           readOnlyRootFilesystem: false
           capabilities:
+            add:
+            - SETGID
+            - SETUID
             drop:
             - ALL
       volumes:

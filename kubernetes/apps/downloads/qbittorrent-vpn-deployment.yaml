@@ -1,0 +1,170 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: downloads
+  labels:
+    app.kubernetes.io/name: downloads
+    app.kubernetes.io/part-of: homelab
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: qbittorrent-config
+  namespace: downloads
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: nfs-apps
+  resources:
+    requests:
+      storage: 5Gi
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: qbittorrent-vpn-config
+  namespace: downloads
+type: Opaque
+stringData:
+  # WireGuard configuration file content
+  wg0.conf: |
+    [Interface]
+    PrivateKey = 6OcJuulkyjJTLIpV94fbVm+xXZqLiuL12/vpD1domHg=
+    Address = 10.166.97.243/32
+    DNS = 1.1.1.1
+    
+    [Peer]
+    PublicKey = PyLCXAQT8KkM4T+dUsOQfn+Ub3pGxfGlxkIApuig+hk=
+    PresharedKey = 1NT+qINAWd635g1ajl9GhgiQzskZwd+cq+Ku0GlQWcE=
+    Endpoint = 198.44.133.70:1637
+    AllowedIPs = 0.0.0.0/0
+    PersistentKeepalive = 25
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: qbittorrent-vpn
+  namespace: downloads
+  labels:
+    app.kubernetes.io/name: qbittorrent
+    app.kubernetes.io/component: torrent-client
+    app.kubernetes.io/part-of: downloads
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: qbittorrent
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: qbittorrent
+        app.kubernetes.io/component: torrent-client
+        app.kubernetes.io/part-of: downloads
+    spec:
+      containers:
+      - name: qbittorrent-vpn
+        image: binhex/arch-qbittorrentvpn:latest
+        securityContext:
+          capabilities:
+            add:
+            - NET_ADMIN
+          privileged: true
+        env:
+        - name: VPN_ENABLED
+          value: "yes"
+        - name: VPN_TYPE
+          value: "wireguard"
+        - name: VPN_PROV
+          value: "custom"
+        - name: ENABLE_PRIVOXY
+          value: "yes"  # Enable HTTP proxy for other apps
+        - name: PUID
+          value: "1000"
+        - name: PGID
+          value: "1000"
+        - name: WEBUI_PORT
+          value: "8080"
+        - name: UMASK
+          value: "002"
+        - name: DEBUG
+          value: "false"
+        - name: TZ
+          value: "America/Los_Angeles"
+        - name: LAN_NETWORK
+          value: "192.168.1.0/24,10.0.0.0/8"  # Allow local network access
+        ports:
+        - containerPort: 8080
+          name: webui
+          protocol: TCP
+        - containerPort: 6881
+          name: torrent-tcp
+          protocol: TCP
+        - containerPort: 6881
+          name: torrent-udp
+          protocol: UDP
+        - containerPort: 8118
+          name: privoxy
+          protocol: TCP
+        volumeMounts:
+        - name: config
+          mountPath: /config
+        - name: downloads
+          mountPath: /downloads
+        - name: wireguard-config
+          mountPath: /config/wireguard
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "2Gi"
+            cpu: "2000m"
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 8080
+          initialDelaySeconds: 60
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+      volumes:
+      - name: config
+        persistentVolumeClaim:
+          claimName: qbittorrent-config
+      - name: downloads
+        persistentVolumeClaim:
+          claimName: downloads-storage
+      - name: wireguard-config
+        secret:
+          secretName: qbittorrent-vpn-config
+          defaultMode: 0600
+      nodeSelector:
+        kubernetes.io/os: linux
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: qbittorrent
+  namespace: downloads
+  labels:
+    app.kubernetes.io/name: qbittorrent
+spec:
+  type: LoadBalancer
+  loadBalancerIP: 192.168.1.220  # Adjust as needed
+  ports:
+  - name: webui
+    port: 8080
+    targetPort: 8080
+    protocol: TCP
+  - name: privoxy
+    port: 8118
+    targetPort: 8118
+    protocol: TCP
+  selector:
+    app.kubernetes.io/name: qbittorrent

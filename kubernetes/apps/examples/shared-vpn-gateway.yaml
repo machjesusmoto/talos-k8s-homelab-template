@@ -1,0 +1,86 @@
+# VPN Gateway Pod that other pods can use
+apiVersion: v1
+kind: Pod
+metadata:
+  name: vpn-gateway
+  namespace: downloads
+  labels:
+    app: vpn-gateway
+spec:
+  containers:
+  - name: gluetun
+    image: qmcgaw/gluetun:v3.38.0
+    securityContext:
+      capabilities:
+        add:
+        - NET_ADMIN
+    env:
+    - name: VPN_SERVICE_PROVIDER
+      value: "custom"
+    - name: VPN_TYPE
+      value: "wireguard"
+    - name: WIREGUARD_ENDPOINT_IP
+      value: "198.44.133.70"
+    - name: WIREGUARD_ENDPOINT_PORT
+      value: "1637"
+    envFrom:
+    - secretRef:
+        name: vpn-credentials
+    - name: FIREWALL
+      value: "on"
+    - name: FIREWALL_INPUT_PORTS
+      value: "8080,6881,9091"  # Ports for various download clients
+    volumeMounts:
+    - name: tun
+      mountPath: /dev/net/tun
+  volumes:
+  - name: tun
+    hostPath:
+      path: /dev/net/tun
+      type: CharDevice
+      
+---
+# qBittorrent using the VPN gateway
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: qbittorrent-shared-vpn
+  namespace: downloads
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: qbittorrent-shared-vpn
+  template:
+    metadata:
+      labels:
+        app: qbittorrent-shared-vpn
+    spec:
+      # Use the VPN gateway pod's network
+      hostNetwork: false
+      shareProcessNamespace: true
+      containers:
+      - name: qbittorrent
+        image: linuxserver/qbittorrent:latest
+        env:
+        - name: PUID
+          value: "1000"
+        - name: PGID
+          value: "1000"
+        # Network traffic will go through vpn-gateway pod
+        - name: NETWORK_GATEWAY
+          value: "vpn-gateway"
+        ports:
+        - containerPort: 8080
+        volumeMounts:
+        - name: config
+          mountPath: /config
+        - name: downloads
+          mountPath: /downloads
+      volumes:
+      - name: config
+        persistentVolumeClaim:
+          claimName: qbittorrent-config
+      - name: downloads
+        persistentVolumeClaim:
+          claimName: downloads

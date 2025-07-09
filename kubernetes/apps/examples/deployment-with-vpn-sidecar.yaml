@@ -1,0 +1,79 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: qbittorrent
+  namespace: downloads
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: qbittorrent
+  template:
+    metadata:
+      labels:
+        app: qbittorrent
+    spec:
+      containers:
+      # Main application container
+      - name: qbittorrent
+        image: linuxserver/qbittorrent:latest
+        env:
+        - name: PUID
+          value: "1000"
+        - name: PGID
+          value: "1000"
+        ports:
+        - containerPort: 8080
+          name: web
+        volumeMounts:
+        - name: config
+          mountPath: /config
+        - name: downloads
+          mountPath: /downloads
+        # Route all traffic through the VPN sidecar
+        # This is done by sharing the network namespace
+        
+      # VPN sidecar container
+      - name: vpn
+        image: qmcgaw/gluetun:v3.38.0
+        securityContext:
+          capabilities:
+            add:
+            - NET_ADMIN
+        env:
+        - name: VPN_SERVICE_PROVIDER
+          value: "airvpn"
+        - name: VPN_TYPE
+          value: "wireguard"
+        # Add all VPN configuration from secret
+        envFrom:
+        - secretRef:
+            name: vpn-config
+        # Disable features that conflict in sidecar mode
+        - name: DOT
+          value: "off"
+        - name: FIREWALL
+          value: "on"
+        - name: FIREWALL_INPUT_PORTS
+          value: "8080"  # Allow access to qBittorrent web UI
+        volumeMounts:
+        - name: gluetun-data
+          mountPath: /gluetun
+          
+      # Share network namespace between containers
+      shareProcessNamespace: true
+      dnsPolicy: None
+      dnsConfig:
+        nameservers:
+        - 1.1.1.1
+        - 1.0.0.1
+        
+      volumes:
+      - name: config
+        persistentVolumeClaim:
+          claimName: qbittorrent-config
+      - name: downloads
+        persistentVolumeClaim:
+          claimName: downloads
+      - name: gluetun-data
+        emptyDir: {}

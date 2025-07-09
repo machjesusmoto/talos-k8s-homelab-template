@@ -21,9 +21,18 @@ spec:
         app.kubernetes.io/component: vpn
         app.kubernetes.io/part-of: homelab
     spec:
-      # Use host networking to bypass CNI egress filtering for VPN traffic
-      hostNetwork: true
-      dnsPolicy: ClusterFirstWithHostNet
+      # Disable host networking to avoid routing loops
+      hostNetwork: false
+      dnsPolicy: ClusterFirst
+      # Prefer worker nodes for host networking
+      affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            preference:
+              matchExpressions:
+              - key: node-role.kubernetes.io/control-plane
+                operator: DoesNotExist
       containers:
       - name: gluetun
         image: qmcgaw/gluetun:v3.38.0
@@ -60,22 +69,23 @@ spec:
           limits:
             memory: "256Mi"
             cpu: "500m"
-        livenessProbe:
-          httpGet:
-            path: /
-            port: health
-          initialDelaySeconds: 30
-          periodSeconds: 60
-          timeoutSeconds: 10
-          failureThreshold: 3
-        readinessProbe:
-          httpGet:
-            path: /
-            port: health
-          initialDelaySeconds: 5
-          periodSeconds: 10
-          timeoutSeconds: 5
-          failureThreshold: 3
+        # Health checks disabled temporarily for debugging
+        # livenessProbe:
+        #   httpGet:
+        #     path: /
+        #     port: health
+        #   initialDelaySeconds: 30
+        #   periodSeconds: 60
+        #   timeoutSeconds: 10
+        #   failureThreshold: 3
+        # readinessProbe:
+        #   httpGet:
+        #     path: /
+        #     port: health
+        #   initialDelaySeconds: 5
+        #   periodSeconds: 10
+        #   timeoutSeconds: 5
+        #   failureThreshold: 3
       volumes:
       - name: tun-device
         hostPath:

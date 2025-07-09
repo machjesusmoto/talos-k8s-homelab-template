@@ -1,0 +1,70 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: qbittorrent-vpn
+  namespace: downloads
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: qbittorrent-vpn
+  template:
+    metadata:
+      labels:
+        app: qbittorrent-vpn
+    spec:
+      containers:
+      # Using binhex's qBittorrent image with built-in VPN support
+      - name: qbittorrent-vpn
+        image: binhex/arch-qbittorrentvpn:latest
+        securityContext:
+          capabilities:
+            add:
+            - NET_ADMIN
+          privileged: true
+        env:
+        - name: VPN_ENABLED
+          value: "yes"
+        - name: VPN_TYPE
+          value: "wireguard"
+        - name: VPN_PROV
+          value: "custom"
+        - name: ENABLE_PRIVOXY
+          value: "no"
+        - name: PUID
+          value: "1000"
+        - name: PGID
+          value: "1000"
+        - name: WEBUI_PORT
+          value: "8080"
+        - name: DEBUG
+          value: "false"
+        ports:
+        - containerPort: 8080
+          name: webui
+        - containerPort: 6881
+          name: torrent-tcp
+        - containerPort: 6881
+          protocol: UDP
+          name: torrent-udp
+        volumeMounts:
+        - name: config
+          mountPath: /config
+        - name: downloads
+          mountPath: /downloads
+        - name: wireguard-config
+          mountPath: /config/wireguard
+          
+      volumes:
+      - name: config
+        persistentVolumeClaim:
+          claimName: qbittorrent-config
+      - name: downloads
+        persistentVolumeClaim:
+          claimName: downloads
+      - name: wireguard-config
+        secret:
+          secretName: wireguard-config
+          items:
+          - key: wg0.conf
+            path: wg0.conf

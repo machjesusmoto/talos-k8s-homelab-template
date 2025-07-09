@@ -1,0 +1,104 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: qbittorrent-wg
+  namespace: downloads
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: qbittorrent-wg
+  template:
+    metadata:
+      labels:
+        app: qbittorrent-wg
+    spec:
+      initContainers:
+      # Set up WireGuard VPN
+      - name: wireguard-init
+        image: linuxserver/wireguard:latest
+        securityContext:
+          capabilities:
+            add:
+            - NET_ADMIN
+          privileged: true
+        command: ["/bin/bash", "-c"]
+        args:
+        - |
+          # Create WireGuard config
+          cat > /etc/wireguard/wg0.conf <<EOF
+          [Interface]
+          PrivateKey = ${WIREGUARD_PRIVATE_KEY}
+          Address = ${WIREGUARD_ADDRESSES}
+          DNS = 1.1.1.1
+          
+          [Peer]
+          PublicKey = ${WIREGUARD_PUBLIC_KEY}
+          PresharedKey = ${WIREGUARD_PRESHARED_KEY}
+          Endpoint = ${WIREGUARD_ENDPOINT}
+          AllowedIPs = 0.0.0.0/0
+          EOF
+          
+          # Start WireGuard
+          wg-quick up wg0
+          
+          # Verify connection
+          wg show
+        env:
+        - name: WIREGUARD_PRIVATE_KEY
+          valueFrom:
+            secretKeyRef:
+              name: vpn-credentials
+              key: private_key
+        - name: WIREGUARD_PUBLIC_KEY
+          valueFrom:
+            secretKeyRef:
+              name: vpn-credentials
+              key: public_key
+        - name: WIREGUARD_PRESHARED_KEY
+          valueFrom:
+            secretKeyRef:
+              name: vpn-credentials
+              key: preshared_key
+        - name: WIREGUARD_ENDPOINT
+          value: "198.44.133.70:1637"
+        - name: WIREGUARD_ADDRESSES
+          valueFrom:
+            secretKeyRef:
+              name: vpn-credentials
+              key: addresses
+        volumeMounts:
+        - name: wireguard
+          mountPath: /etc/wireguard
+          
+      containers:
+      - name: qbittorrent
+        image: linuxserver/qbittorrent:latest
+        securityContext:
+          capabilities:
+            add:
+            - NET_ADMIN
+        env:
+        - name: PUID
+          value: "1000"
+        - name: PGID
+          value: "1000"
+        ports:
+        - containerPort: 8080
+        volumeMounts:
+        - name: config
+          mountPath: /config
+        - name: downloads
+          mountPath: /downloads
+        - name: wireguard
+          mountPath: /etc/wireguard
+          
+      volumes:
+      - name: config
+        persistentVolumeClaim:
+          claimName: qbittorrent-config
+      - name: downloads
+        persistentVolumeClaim:
+          claimName: downloads
+      - name: wireguard
+        emptyDir: {}

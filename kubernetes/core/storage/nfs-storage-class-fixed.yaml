@@ -1,0 +1,41 @@
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: nfs-apps-v41
+  labels:
+    app.kubernetes.io/instance: core-infrastructure
+mountOptions:
+- vers=4.1  # Changed from 4.2 to 4.1
+- proto=tcp
+- timeo=600
+- retrans=2
+- hard
+- rsize=32768
+- wsize=32768
+parameters:
+  server: stor1-truenasprod1.dttesting.com
+  share: /mnt/rz3_storage/primary_dataset/media
+provisioner: nfs.csi.k8s.io
+reclaimPolicy: Retain
+volumeBindingMode: Immediate
+---
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: nfs-apps-v3
+  labels:
+    app.kubernetes.io/instance: core-infrastructure
+mountOptions:
+- vers=3  # NFSv3 for maximum compatibility
+- proto=tcp
+- timeo=600
+- retrans=2
+- hard
+- rsize=32768
+- wsize=32768
+parameters:
+  server: stor1-truenasprod1.dttesting.com
+  share: /mnt/rz3_storage/primary_dataset/media
+provisioner: nfs.csi.k8s.io
+reclaimPolicy: Retain
+volumeBindingMode: Immediate
