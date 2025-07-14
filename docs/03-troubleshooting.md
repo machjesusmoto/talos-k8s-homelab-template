@@ -78,27 +78,90 @@ error bootstrapping cluster: rpc error: code = Unavailable desc = connection err
 s6-applyuidgid: fatal: unable to set supplementary group list: Operation not permitted
 ```
 
-**Affected Applications**: Sonarr, Radarr, Lidarr, Bazarr, Readarr, qBittorrent, NZBget, Grocy
+**Affected Applications**: Sonarr, Radarr, Lidarr, Bazarr, Readarr, qBittorrent, NZBget, Grocy, Overseerr
 
 **Cause**: Pod security policies preventing proper user ID management
 
 **Solution**:
-1. Verify namespace has privileged pod security labels:
-   ```yaml
-   metadata:
-     labels:
-       pod-security.kubernetes.io/enforce: privileged
-       pod-security.kubernetes.io/audit: privileged
-       pod-security.kubernetes.io/warn: privileged
+1. Run the fix script (automatically handles all LinuxServer containers):
+   ```bash
+   # Linux
+   ./scripts/fix-linuxserver-security.sh
+   
+   # Windows
+   .\scripts\fix-linuxserver-security.ps1
    ```
-2. Containers are configured to run as root:
+
+2. For manual fixes, add security capabilities:
    ```yaml
    securityContext:
-     runAsNonRoot: false
-     runAsUser: 0
-     runAsGroup: 0
+     capabilities:
+       add:
+         - SETUID
+         - SETGID
+         - CHOWN  # Required for some containers like Grocy
+       drop:
+         - ALL
    ```
-3. Wait for containers to complete initialization (may take 2-3 minutes)
+
+3. For containers running as specific UIDs:
+   ```yaml
+   securityContext:
+     runAsUser: 1000
+     runAsGroup: 1000
+     fsGroup: 1000
+   ```
+
+4. Wait for containers to complete initialization (may take 2-3 minutes)
+
+### Container-Specific Permission Issues
+
+#### Overseerr Yarn Cache Issues
+**Symptom**: 
+```
+error Error: EACCES: permission denied, mkdir '/run/overseerr-temp/yarn--xxxx'
+```
+
+**Solution**:
+Set environment variables for temp directories:
+```yaml
+env:
+- name: TMPDIR
+  value: /config/tmp
+- name: YARN_CACHE_FOLDER
+  value: /config/yarn-cache
+```
+
+#### Grocy Nginx Permission Issues
+**Symptom**: 
+```
+[emerg] chown("/tmp/nginx", 1000) failed (1: Operation not permitted)
+```
+
+**Solution**:
+1. Add CHOWN capability
+2. Run container as UID/GID 1000
+3. Add supplementalGroups if needed:
+   ```yaml
+   securityContext:
+     supplementalGroups: [1000]
+   ```
+
+### NZBget Memory Issues
+
+**Symptom**: Pod crashes with exit code 137 (OOM killed)
+
+**Solution**:
+Increase memory limits in deployment:
+```yaml
+resources:
+  requests:
+    memory: "512Mi"  # Increased from 256Mi
+  limits:
+    memory: "2Gi"    # Increased from 1Gi
+```
+
+**Note**: Changes to GitOps-managed deployments should be made in the Git repository, not directly via kubectl.
 
 ### PVC Storage Class Immutable Error
 

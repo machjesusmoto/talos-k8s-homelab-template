@@ -33,6 +33,8 @@ CLAUDE.md
 claude.md
 SESSION_CONTEXT.md
 session-summary-*.md
+session-context-*.md
+cachyos-migration-session-*.md
 nfs-troubleshooting-*.md
 
 # OS
