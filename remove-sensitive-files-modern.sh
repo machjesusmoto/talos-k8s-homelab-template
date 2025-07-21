@@ -7,10 +7,12 @@ echo "WARNING: This will rewrite Git history and force push to origin."
 echo "Make sure all collaborators are aware before proceeding."
 echo ""
 echo "Files to be removed from ALL history:"
+echo "  - secrets.yaml (Talos cluster secrets)"
 echo "  - configurations.yaml"
 echo "  - .claude/ folder"
 echo "  - CLAUDE.md"
 echo "  - SESSION_CONTEXT.md"
+echo "  - Any vpn-secret.yaml or cloudflare-secret.yaml files"
 echo ""
 read -p "Do you want to continue? (yes/no): " confirm
 
@@ -37,7 +39,7 @@ echo "Creating backup branch..."
 git branch backup-before-cleanup-modern 2>/dev/null || echo "Backup branch already exists"
 
 echo "Removing sensitive files from all history using git-filter-repo..."
-$FILTER_REPO --path configurations.yaml --path .claude --path CLAUDE.md --path SESSION_CONTEXT.md --invert-paths --force
+$FILTER_REPO --path secrets.yaml --path configurations.yaml --path .claude --path CLAUDE.md --path SESSION_CONTEXT.md --path controlplane.yaml --path worker.yaml --path talos/controlplane-*.yaml --path talos/worker-*.yaml --path kubernetes/apps/gluetun/vpn-secret.yaml --path kubernetes/apps/traefik/cloudflare-secret.yaml --invert-paths --force
 
 echo ""
 echo "History has been rewritten locally using the modern git-filter-repo tool."
