@@ -1,0 +1,45 @@
+# Example: qBittorrent with SOCKS5 Proxy Configuration
+# This shows how to configure qBittorrent to use Gluetun's SOCKS5 proxy
+#
+# Note: After deployment, you must manually configure the proxy settings
+# in qBittorrent's web UI as documented in PROXY-CONFIGURATION.md
+#
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: qbittorrent-proxy-config
+  namespace: downloads
+data:
+  proxy-setup.md: |
+    # qBittorrent Proxy Configuration
+    
+    After qBittorrent is running, access the web UI and configure:
+    
+    1. Go to Settings → Connection → Proxy Server
+    2. Configure these settings:
+       - Type: SOCKS5
+       - Host: gluetun.gluetun.svc.cluster.local
+       - Port: 1080
+       - Use proxy for peer connections: ✓ (checked)
+       - Disable connections not supported by proxies: ✓ (checked)
+    
+    3. Go to Settings → BitTorrent
+       - Encryption mode: Require encryption
+       - Anonymous mode: ✓ (checked)
+    
+    4. Save settings and restart qBittorrent
+---
+# Example environment variables for automated proxy config
+# Note: qBittorrent doesn't support env-based proxy config,
+# but some other clients do
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: download-client-proxy-env
+  namespace: downloads
+data:
+  # For clients that support environment-based proxy configuration
+  HTTP_PROXY: "http://gluetun.gluetun.svc.cluster.local:8888"
+  HTTPS_PROXY: "http://gluetun.gluetun.svc.cluster.local:8888"
+  SOCKS5_PROXY: "socks5://gluetun.gluetun.svc.cluster.local:1080"
+  NO_PROXY: "localhost,127.0.0.1,10.0.0.0/8,192.168.0.0/16,*.cluster.local"

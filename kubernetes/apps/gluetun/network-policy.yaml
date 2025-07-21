@@ -1,0 +1,46 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: vpn-gateway-policy
+  namespace: downloads
+spec:
+  podSelector:
+    matchLabels:
+      gluetun.io/vpn-client: "true"
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  # Allow ingress from anywhere in the cluster
+  - from:
+    - namespaceSelector: {}
+    - podSelector: {}
+  egress:
+  # Allow DNS
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+    - podSelector:
+        matchLabels:
+          k8s-app: kube-dns
+    ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53
+  # Allow traffic to Gluetun VPN gateway
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: gluetun
+    - podSelector:
+        matchLabels:
+          app.kubernetes.io/name: gluetun
+  # Allow internal cluster communication
+  - to:
+    - namespaceSelector: {}
+    - podSelector: {}
+    ports:
+    - protocol: TCP
+  # Block all other egress (forces VPN usage)

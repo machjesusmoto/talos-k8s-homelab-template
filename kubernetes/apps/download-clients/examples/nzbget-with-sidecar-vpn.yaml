@@ -1,0 +1,164 @@
+# Example: NZBget with Gluetun VPN Sidecar
+# Since NZBget doesn't support SOCKS5 proxies, this example shows
+# how to run NZBget in the same pod as Gluetun to share the network namespace
+#
+# WARNING: This creates a separate VPN connection from the main Gluetun deployment
+# Consider VPN provider connection limits
+#
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nzbget-vpn
+  namespace: downloads
+  labels:
+    app.kubernetes.io/name: nzbget-vpn
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate  # Required for single PVC access
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: nzbget-vpn
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: nzbget-vpn
+    spec:
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      # Gluetun VPN container (network provider)
+      - name: gluetun
+        image: qmcgaw/gluetun:v3.38.0
+        env:
+        - name: VPN_SERVICE_PROVIDER
+          value: "private internet access"  # CONFIGURE: Your provider
+        - name: VPN_TYPE
+          value: "openvpn"
+        - name: OPENVPN_USER
+          valueFrom:
+            secretKeyRef:
+              name: vpn-credentials  # CONFIGURE: Your secret name
+              key: username
+        - name: OPENVPN_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: vpn-credentials
+              key: password
+        - name: SERVER_REGIONS
+          value: "US Seattle"  # CONFIGURE: Your preferred region
+        - name: FIREWALL_OUTBOUND_SUBNETS
+          value: "192.168.1.0/24,10.0.0.0/8,172.16.0.0/12"
+        - name: TZ
+          value: "America/Los_Angeles"
+        securityContext:
+          capabilities:
+            add:
+            - NET_ADMIN
+          allowPrivilegeEscalation: false
+          runAsNonRoot: false
+          runAsUser: 0
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "50m"
+          limits:
+            memory: "256Mi"
+            cpu: "100m"
+      
+      # NZBget container (uses Gluetun's network)
+      - name: nzbget
+        image: lscr.io/linuxserver/nzbget:latest
+        env:
+        - name: PUID
+          value: "1000"
+        - name: PGID
+          value: "1000"
+        - name: TZ
+          value: "America/New_York"
+        - name: NZBGET_USER
+          value: "admin"  # CONFIGURE: Your username
+        - name: NZBGET_PASS
+          value: "changeme"  # CONFIGURE: Your password
+        ports:
+        - name: webui
+          containerPort: 6789
+          protocol: TCP
+        volumeMounts:
+        - name: config
+          mountPath: /config
+        - name: downloads
+          mountPath: /downloads
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "100m"
+          limits:
+            memory: "2Gi"
+            cpu: "500m"
+        # Health checks with auth
+        livenessProbe:
+          httpGet:
+            path: /
+            port: webui
+            httpHeaders:
+            - name: Authorization
+              value: Basic YWRtaW46Y2hhbmdlbWU=  # CONFIGURE: base64(admin:changeme)
+          initialDelaySeconds: 60
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /
+            port: webui
+            httpHeaders:
+            - name: Authorization
+              value: Basic YWRtaW46Y2hhbmdlbWU=  # CONFIGURE: base64(admin:changeme)
+          initialDelaySeconds: 30
+          periodSeconds: 10
+      volumes:
+      - name: config
+        persistentVolumeClaim:
+          claimName: nzbget-config
+      - name: downloads
+        persistentVolumeClaim:
+          claimName: downloads-storage
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nzbget-vpn
+  namespace: downloads
+spec:
+  selector:
+    app.kubernetes.io/name: nzbget-vpn
+  ports:
+  - name: webui
+    port: 6789
+    targetPort: 6789
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: nzbget-vpn
+  namespace: downloads
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    traefik.ingress.kubernetes.io/router.tls: "true"
+spec:
+  ingressClassName: traefik
+  tls:
+  - hosts:
+    - nzbget.example.com  # CONFIGURE: Your domain
+    secretName: nzbget-tls
+  rules:
+  - host: nzbget.example.com  # CONFIGURE: Your domain
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: nzbget-vpn
+            port:
+              number: 6789
