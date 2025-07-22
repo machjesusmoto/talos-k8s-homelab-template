@@ -1,0 +1,224 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: qbittorrent
+  namespace: downloads
+  labels:
+    app.kubernetes.io/name: qbittorrent
+    app.kubernetes.io/component: torrent-client
+    app.kubernetes.io/part-of: download-clients
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: qbittorrent
+      app.kubernetes.io/component: torrent-client
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: qbittorrent
+        app.kubernetes.io/component: torrent-client
+        app.kubernetes.io/part-of: download-clients
+    spec:
+      # Share network namespace between containers
+      shareProcessNamespace: true
+      dnsPolicy: None
+      dnsConfig:
+        nameservers:
+          - 1.1.1.1
+          - 1.0.0.1
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
+        runAsUser: 0
+        runAsGroup: 0
+        fsGroup: 1000
+      initContainers:
+      # Wait for VPN to be ready
+      - name: vpn-wait
+        image: busybox:1.36
+        command: ['sh', '-c', 'until nc -z localhost 8888; do echo "Waiting for VPN..."; sleep 5; done']
+      containers:
+      # Gluetun VPN container
+      - name: vpn
+        image: qmcgaw/gluetun:v3.38.0
+        securityContext:
+          capabilities:
+            add:
+              - NET_ADMIN
+        env:
+        - name: VPN_SERVICE_PROVIDER
+          value: "airvpn"
+        - name: VPN_TYPE
+          value: "wireguard"
+        - name: FIREWALL
+          value: "on"
+        - name: FIREWALL_VPN_INPUT_PORTS
+          value: "6881"
+        - name: FIREWALL_OUTBOUND_SUBNETS
+          value: "10.0.0.0/8,172.16.0.0/12,192.168.0.0/16"
+        - name: DOT
+          value: "on"
+        - name: DOT_PROVIDERS
+          value: "cloudflare"
+        - name: HEALTH_SERVER_ADDRESS
+          value: ":9999"
+        - name: HTTP_CONTROL_SERVER_ADDRESS
+          value: ":8000"
+        - name: LOG_LEVEL
+          value: "info"
+        # WireGuard configuration from secret
+        - name: WIREGUARD_PRIVATE_KEY
+          valueFrom:
+            secretKeyRef:
+              name: qbittorrent-vpn-secret
+              key: WIREGUARD_PRIVATE_KEY
+        - name: WIREGUARD_ADDRESSES
+          valueFrom:
+            secretKeyRef:
+              name: qbittorrent-vpn-secret
+              key: WIREGUARD_ADDRESSES
+        - name: WIREGUARD_PUBLIC_KEY
+          valueFrom:
+            secretKeyRef:
+              name: qbittorrent-vpn-secret
+              key: WIREGUARD_PUBLIC_KEY
+        - name: WIREGUARD_PRESHARED_KEY
+          valueFrom:
+            secretKeyRef:
+              name: qbittorrent-vpn-secret
+              key: WIREGUARD_PRESHARED_KEY
+        - name: WIREGUARD_ENDPOINT_IP
+          valueFrom:
+            secretKeyRef:
+              name: qbittorrent-vpn-secret
+              key: WIREGUARD_ENDPOINT_IP
+        - name: WIREGUARD_ENDPOINT_PORT
+          valueFrom:
+            secretKeyRef:
+              name: qbittorrent-vpn-secret
+              key: WIREGUARD_ENDPOINT_PORT
+        ports:
+        - name: http-proxy
+          containerPort: 8888
+          protocol: TCP
+        - name: control
+          containerPort: 8000
+          protocol: TCP
+        - name: health
+          containerPort: 9999
+          protocol: TCP
+        livenessProbe:
+          httpGet:
+            path: /v1/publicip/ip
+            port: control
+          initialDelaySeconds: 30
+          periodSeconds: 60
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: health
+          initialDelaySeconds: 10
+          periodSeconds: 30
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "500m"
+      # qBittorrent container
+      - name: qbittorrent
+        image: lscr.io/linuxserver/qbittorrent:latest
+        env:
+        - name: PUID
+          value: "1000"
+        - name: PGID
+          value: "1000"
+        - name: TZ
+          value: "America/New_York"
+        - name: UMASK
+          value: "022"
+        - name: WEBUI_PORT
+          value: "8080"
+        ports:
+        - name: webui
+          containerPort: 8080
+          protocol: TCP
+        - name: torrent-tcp
+          containerPort: 6881
+          protocol: TCP
+        - name: torrent-udp
+          containerPort: 6881
+          protocol: UDP
+        volumeMounts:
+        - name: qbittorrent-config
+          mountPath: /config
+        - name: downloads-storage
+          mountPath: /downloads
+        - name: incomplete-downloads
+          mountPath: /incomplete-downloads
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "200m"
+          limits:
+            memory: "2Gi"
+            cpu: "1000m"
+        livenessProbe:
+          httpGet:
+            path: /
+            port: webui
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /
+            port: webui
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        securityContext:
+          runAsNonRoot: false
+          runAsUser: 0
+          runAsGroup: 0
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: false
+          capabilities:
+            add:
+            - SETUID
+            - SETGID
+            drop:
+            - ALL
+      volumes:
+      - name: qbittorrent-config
+        persistentVolumeClaim:
+          claimName: qbittorrent-config
+      - name: downloads-storage
+        persistentVolumeClaim:
+          claimName: downloads-storage
+      - name: incomplete-downloads
+        persistentVolumeClaim:
+          claimName: incomplete-downloads
+      nodeSelector:
+        kubernetes.io/os: linux
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: qbittorrent-vpn-secret
+  namespace: downloads
+type: Opaque
+stringData:
+  # Copy these values from your existing gluetun-vpn-secret
+  WIREGUARD_PRIVATE_KEY: "iICLAI5WDb/Yy/8L6Zis+BrLMM/YxZDcC72Nwpevxno="
+  WIREGUARD_ADDRESSES: "10.174.76.10/32"
+  WIREGUARD_PUBLIC_KEY: "PyLCXAQT8KkM4T+dUsOQfn+Ub3pGxfGlxkIApuig+hk="
+  WIREGUARD_PRESHARED_KEY: "CPGdmK9KGIQanSqT6JHTmVAPP20pH1pv/2+I9Q7y4mc="
+  WIREGUARD_ENDPOINT_IP: "198.44.133.70"
+  WIREGUARD_ENDPOINT_PORT: "1637"

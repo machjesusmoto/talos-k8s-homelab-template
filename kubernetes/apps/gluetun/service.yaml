@@ -22,6 +22,10 @@ spec:
     port: 8888
     targetPort: http-proxy
     protocol: TCP
+  - name: socks5
+    port: 1080
+    targetPort: shadowsocks
+    protocol: TCP
   selector:
     app.kubernetes.io/name: gluetun
 ---

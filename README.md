@@ -207,3 +207,58 @@ This is a personal homelab project, but improvements and suggestions are welcome
 ## Security Note
 
 ⚠️ **Important**: The `secrets.yaml` file contains cluster secrets and should never be committed to version control. Always backup this file securely after generation.
+
+## Lessons Learned and Important Notes
+
+### Critical Deployment Requirements
+
+1. **Traefik IngressClass**: Must be created before any Ingress resources
+   ```bash
+   kubectl apply -f kubernetes/apps/traefik/ingressclass.yaml
+   ```
+
+2. **Network Policy Limitations**: Flannel CNI does not enforce network policies without an additional controller
+   - Consider installing Calico or kube-router for network policy enforcement
+   - See `kubernetes/apps/download-clients/NETWORK-POLICY-NOTE.md`
+
+3. **VPN Configuration for Download Clients**:
+   - qBittorrent: Supports SOCKS5 proxy natively
+   - NZBget: Requires HTTP proxy or sidecar container approach
+   - Gluetun configuration requires exact provider names (e.g., "private internet access" with spaces)
+   - See `kubernetes/apps/download-clients/PROXY-CONFIGURATION.md`
+
+4. **Health Check Authentication**: Some applications (like NZBget) require authentication headers in health probes
+   ```yaml
+   httpHeaders:
+   - name: Authorization
+     value: Basic <base64-encoded-credentials>
+   ```
+
+5. **Secret Management**: 
+   - All production secrets should be templated with clear placeholders
+   - VPN credentials must match provider requirements exactly
+   - Store API tokens (Cloudflare, etc.) securely
+
+### Common Issues and Solutions
+
+| Issue | Symptom | Solution |
+|-------|---------|----------|
+| Ingress 404 errors | All ingresses return 404 | Create Traefik IngressClass |
+| Network policies not working | Pods can access restricted services | Install network policy controller |
+| VPN connection failures | Gluetun restart loops | Check provider name formatting and credentials |
+| Health check failures | Pods not becoming ready | Add authentication headers to probes |
+| Certificate challenges failing | Stuck cert-manager challenges | Verify DNS provider API tokens |
+
+### Deployment Order
+
+See `docs/DEPLOYMENT-ORDER.md` for the complete deployment sequence. Key points:
+1. kube-proxy must be deployed first (when using Talos with proxy disabled)
+2. Infrastructure components have strict ordering requirements
+3. VPN services must be deployed before protected applications
+
+### GitOps Considerations
+
+- ArgoCD manages most deployments after initial bootstrap
+- Some resources (like IngressClass) may need manual creation
+- Sync order is controlled by ArgoCD sync waves
+- Network policies should be deployed with their applications

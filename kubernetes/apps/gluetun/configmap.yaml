@@ -8,14 +8,16 @@ metadata:
     app.kubernetes.io/part-of: homelab
 data:
   # VPN Provider (examples: nordvpn, expressvpn, surfshark, pia, mullvad, etc.)
-  VPN_SERVICE_PROVIDER: "mullvad"
+  VPN_SERVICE_PROVIDER: "private internet access"
   
   # VPN Type (wireguard or openvpn)
-  VPN_TYPE: "wireguard"
+  # Using OpenVPN for PIA - WireGuard requires manual token generation
+  VPN_TYPE: "openvpn"
   
   # Firewall settings
   FIREWALL: "on"
-  FIREWALL_VPN_INPUT_PORTS: "51820"
+  # OpenVPN uses different port than WireGuard
+  FIREWALL_VPN_INPUT_PORTS: "1198"
   
   # DNS settings  
   DOT: "on"
@@ -32,3 +34,16 @@ data:
   
   # Kill switch - blocks traffic if VPN disconnects
   FIREWALL_OUTBOUND_SUBNETS: "192.168.1.0/24,10.0.0.0/8,172.16.0.0/12"
+  
+  # Enable Shadowsocks (SOCKS5 proxy)
+  SHADOWSOCKS: "on"
+  SHADOWSOCKS_PASSWORD: "gluetun"
+  SHADOWSOCKS_CIPHER: "chacha20-ietf-poly1305"
+  
+  # Enable HTTP proxy
+  HTTPPROXY: "on"
+  HTTPPROXY_STEALTH: "off"
+  
+  # Enable port forwarding for PIA (useful for torrenting)
+  VPN_PORT_FORWARDING: "on"
+  VPN_PORT_FORWARDING_PROVIDER: "private internet access"

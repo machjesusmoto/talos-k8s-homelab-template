@@ -1,0 +1,117 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: qbittorrent-vpn
+  namespace: downloads
+  labels:
+    app.kubernetes.io/name: qbittorrent-vpn
+    app.kubernetes.io/component: torrent-client-vpn
+    app.kubernetes.io/part-of: download-clients
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: qbittorrent-vpn
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: qbittorrent-vpn
+        app.kubernetes.io/component: torrent-client-vpn
+    spec:
+      containers:
+      # Gluetun VPN container
+      - name: gluetun
+        image: qmcgaw/gluetun:v3.38.0
+        securityContext:
+          capabilities:
+            add:
+              - NET_ADMIN
+        envFrom:
+        - configMapRef:
+            name: gluetun-config
+        - secretRef:
+            name: gluetun-vpn-secret
+        env:
+        - name: FIREWALL_OUTBOUND_SUBNETS
+          value: "10.0.0.0/8,172.16.0.0/12,192.168.0.0/16"
+        - name: FIREWALL_INPUT_PORTS
+          value: "6881"  # qBittorrent port
+        ports:
+        - name: vpn-http
+          containerPort: 8888
+          protocol: TCP
+        - name: vpn-control
+          containerPort: 8000
+          protocol: TCP
+        - name: qbt-webui
+          containerPort: 8080
+          protocol: TCP
+        - name: qbt-torrent
+          containerPort: 6881
+          protocol: TCP
+        - name: qbt-torrent-udp
+          containerPort: 6881
+          protocol: UDP
+        volumeMounts:
+        - name: gluetun-data
+          mountPath: /gluetun
+        livenessProbe:
+          httpGet:
+            path: /v1/publicip/ip
+            port: vpn-control
+          initialDelaySeconds: 60
+          periodSeconds: 60
+          timeoutSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /v1/openvpn/status
+            port: vpn-control
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          
+      # qBittorrent container sharing network namespace
+      - name: qbittorrent
+        image: lscr.io/linuxserver/qbittorrent:latest
+        env:
+        - name: PUID
+          value: "1000"
+        - name: PGID
+          value: "1000"
+        - name: TZ
+          value: "America/New_York"
+        - name: WEBUI_PORT
+          value: "8080"
+        volumeMounts:
+        - name: qbittorrent-config
+          mountPath: /config
+        - name: downloads-storage
+          mountPath: /downloads
+        - name: incomplete-downloads
+          mountPath: /incomplete
+        securityContext:
+          runAsUser: 0
+          runAsGroup: 0
+          capabilities:
+            add:
+              - SETUID
+              - SETGID
+            drop:
+              - ALL
+              
+      securityContext:
+        fsGroup: 1000
+        
+      volumes:
+      - name: gluetun-data
+        emptyDir: {}
+      - name: qbittorrent-config
+        persistentVolumeClaim:
+          claimName: qbittorrent-config
+      - name: downloads-storage
+        persistentVolumeClaim:
+          claimName: downloads-storage
+      - name: incomplete-downloads
+        persistentVolumeClaim:
+          claimName: incomplete-downloads
